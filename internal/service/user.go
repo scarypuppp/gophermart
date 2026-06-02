@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/scarypuppp/gophermart/internal/entities"
+	"github.com/scarypuppp/gophermart/internal/repository"
 	"github.com/scarypuppp/gophermart/internal/utils/auth"
 )
 
@@ -16,24 +17,14 @@ var ErrLoginAlreadyExists = errors.New("user with such login already exists")
 var ErrLoginPasswordNotExist = errors.New("user with such login and password does not exist")
 
 //
-//	INTERFACES
-//
-
-type UserRepository interface {
-	GetById(ctx context.Context, id int64) (*entities.User, error)
-	GetByLogin(ctx context.Context, login string) (*entities.User, error)
-	CreateUser(ctx context.Context, user entities.User) (*entities.User, error)
-}
-
-//
 //	SERVICE
 //
 
 type UserService struct {
-	repo UserRepository
+	repo repository.UserRepository
 }
 
-func NewUserService(repo UserRepository) UserService {
+func NewUserService(repo repository.UserRepository) UserService {
 	return UserService{repo}
 }
 
