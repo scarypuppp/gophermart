@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (h *Handler) GetRouter() http.Handler {
+func (h *Api) GetRouter() http.Handler {
 	r := chi.NewRouter()
 
 	r.Post("/api/user/register", h.Register)

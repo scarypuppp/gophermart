@@ -2,12 +2,12 @@ package handlers
 
 import "github.com/scarypuppp/gophermart/internal/service"
 
-type Handler struct {
+type Api struct {
 	userService *service.UserService
 }
 
-func NewHandler(us *service.UserService) *Handler {
-	return &Handler{
+func NewApi(us *service.UserService) *Api {
+	return &Api{
 		userService: us,
 	}
 }

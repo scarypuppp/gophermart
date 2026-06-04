@@ -20,7 +20,7 @@ type registerRequest struct {
 }
 
 // Register Хэндлер для регистрации пользователя
-func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
+func (h *Api) Register(w http.ResponseWriter, r *http.Request) {
 	var buffer bytes.Buffer
 	var requestData registerRequest
 	_, err := buffer.ReadFrom(r.Body)
@@ -40,4 +40,4 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {}
+func (h *Api) Login(w http.ResponseWriter, r *http.Request) {}
