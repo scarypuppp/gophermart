@@ -9,18 +9,18 @@ import (
 type UnitOfWorkPostgres struct {
 	db    *sqlx.DB
 	tx    *sqlx.Tx
-	users UserRepositoryPostgres
+	users *UserRepositoryPostgres
 }
 
-func NewUnitOfWorkPostgres(db *sqlx.DB) UnitOfWorkPostgres {
-	return UnitOfWorkPostgres{
+func NewUnitOfWorkPostgres(db *sqlx.DB) *UnitOfWorkPostgres {
+	return &UnitOfWorkPostgres{
 		db:    db,
 		users: NewUserRepositoryPostgres(db),
 	}
 }
 
 func (u *UnitOfWorkPostgres) Users() UserRepository {
-	return &u.users
+	return u.users
 }
 
 func (u *UnitOfWorkPostgres) BeginTx(ctx context.Context) (UnitOfWork, error) {
@@ -36,14 +36,14 @@ func (u *UnitOfWorkPostgres) BeginTx(ctx context.Context) (UnitOfWork, error) {
 	}, nil
 }
 
-func (u *UnitOfWorkPostgres) Commit(ctx context.Context) error {
+func (u *UnitOfWorkPostgres) Commit(_ context.Context) error {
 	if u.tx == nil {
 		return nil
 	}
 	return u.tx.Commit()
 }
 
-func (u *UnitOfWorkPostgres) Rollback(ctx context.Context) error {
+func (u *UnitOfWorkPostgres) Rollback(_ context.Context) error {
 	if u.tx == nil {
 		return nil
 	}

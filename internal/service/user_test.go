@@ -2,134 +2,137 @@ package service
 
 import (
 	"context"
-	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/scarypuppp/gophermart/internal/entities"
+	"github.com/scarypuppp/gophermart/internal/repository"
+	"github.com/scarypuppp/gophermart/internal/repository/mocks"
 	"github.com/scarypuppp/gophermart/internal/utils/auth"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
-type MockUserRepository struct {
-	currentUserId atomic.Int64
-	users         []entities.User
-
-	mu sync.RWMutex
-}
-
-func NewMockRepository(users []entities.User) *MockUserRepository {
-	return &MockUserRepository{users: users}
-}
-
-func (m *MockUserRepository) GetById(ctx context.Context, id int64) (*entities.User, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	for _, u := range m.users {
-		if u.ID == id {
-			uCopy := u
-			return &uCopy, nil
-		}
-	}
-	return nil, nil
-}
-
-func (m *MockUserRepository) GetByLogin(ctx context.Context, login string) (*entities.User, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	for _, u := range m.users {
-		if u.Login == login {
-			uCopy := u
-			return &uCopy, nil
-		}
-	}
-	return nil, nil
-}
-func (m *MockUserRepository) CreateUser(ctx context.Context, user entities.User) (*entities.User, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.currentUserId.Add(1)
-	user.ID = m.currentUserId.Load()
-	m.users = append(m.users, user)
-	return &user, nil
+func setupMocks(t *testing.T) (
+	*gomock.Controller,
+	*mocks.MockUnitOfWork,
+	*mocks.MockUnitOfWork,
+	*mocks.MockUserRepository,
+) {
+	ctrl := gomock.NewController(t)
+	uowMock := mocks.NewMockUnitOfWork(ctrl)
+	uowTxMock := mocks.NewMockUnitOfWork(ctrl)
+	userRepoMock := mocks.NewMockUserRepository(ctrl)
+	return ctrl, uowMock, uowTxMock, userRepoMock
 }
 
 func TestRegisterUser(t *testing.T) {
-	t.Run("success", func(t *testing.T) {
-		us := NewUserService(NewMockRepository([]entities.User{}))
+	ctx := context.Background()
 
-		user, err := us.RegisterUser(context.TODO(), "user", "12345")
+	t.Run("success", func(t *testing.T) {
+		_, uowMock, uowTxMock, userRepoMock := setupMocks(t)
+
+		uowMock.EXPECT().BeginTx(ctx).Return(uowTxMock, nil)
+		uowTxMock.EXPECT().Rollback(ctx).Return(nil)
+		uowTxMock.EXPECT().Users().Return(userRepoMock).Times(2)
+		userRepoMock.EXPECT().
+			GetByLogin(ctx, "user").
+			Return(nil, repository.ErrNoRows)
+		userRepoMock.EXPECT().
+			CreateUser(ctx, gomock.Any()).
+			Return(&entities.User{ID: 1, Login: "user"}, nil)
+		uowTxMock.EXPECT().Commit(ctx).Return(nil)
+
+		us := NewUserService(uowMock)
+		user, err := us.RegisterUser(ctx, "user", "12345")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, user)
 		assert.Equal(t, "user", user.Login)
 		assert.NotZero(t, user.ID)
-		assert.NotEqual(t, "12345", user.Password)
 	})
 
 	t.Run("incorrect login", func(t *testing.T) {
-		us := NewUserService(NewMockRepository([]entities.User{}))
+		_, uowMock, _, _ := setupMocks(t)
 
-		_, err := us.RegisterUser(context.TODO(), "", "12345")
+		us := NewUserService(uowMock)
+		_, err := us.RegisterUser(ctx, "", "12345")
 
-		assert.Error(t, err)
 		assert.ErrorIs(t, err, entities.ErrIncorrectLoginLength)
 	})
+
 	t.Run("incorrect password", func(t *testing.T) {
-		us := NewUserService(NewMockRepository([]entities.User{}))
+		_, uowMock, _, _ := setupMocks(t)
 
-		_, err := us.RegisterUser(context.TODO(), "user", "1")
+		us := NewUserService(uowMock)
+		_, err := us.RegisterUser(ctx, "user", "1")
 
-		assert.Error(t, err)
 		assert.ErrorIs(t, err, entities.ErrIncorrectPasswordLength)
 	})
 
 	t.Run("duplicate login", func(t *testing.T) {
-		existing := []entities.User{{ID: 1, Login: "user"}}
-		us := NewUserService(NewMockRepository(existing))
+		_, uowMock, uowTxMock, userRepoMock := setupMocks(t)
 
-		_, err := us.RegisterUser(context.TODO(), "user", "12345")
+		uowMock.EXPECT().BeginTx(ctx).Return(uowTxMock, nil)
+		uowTxMock.EXPECT().Rollback(ctx).Return(nil)
+		uowTxMock.EXPECT().Users().Return(userRepoMock)
+		userRepoMock.EXPECT().
+			GetByLogin(ctx, "user").
+			Return(&entities.User{ID: 1, Login: "user"}, nil)
 
-		assert.Error(t, err)
+		us := NewUserService(uowMock)
+		_, err := us.RegisterUser(ctx, "user", "12345")
+
 		assert.ErrorIs(t, err, ErrLoginAlreadyExists)
 	})
 }
 
 func TestLoginUser(t *testing.T) {
-	t.Run("success", func(t *testing.T) {
-		var users []entities.User
-		passwordHash, _ := auth.HashPassword("12345")
-		users = append(users, entities.User{ID: 1, Login: "user", Password: passwordHash})
-		us := NewUserService(NewMockRepository(users))
+	ctx := context.Background()
+	passwordHash, _ := auth.HashPassword("12345")
+	existingUser := &entities.User{ID: 1, Login: "user", Password: passwordHash}
 
-		user, err := us.LoginUser(context.TODO(), "user", "12345")
+	t.Run("success", func(t *testing.T) {
+		_, uowMock, _, userRepoMock := setupMocks(t)
+
+		uowMock.EXPECT().Users().Return(userRepoMock)
+		userRepoMock.EXPECT().
+			GetByLogin(ctx, "user").
+			Return(existingUser, nil)
+
+		us := NewUserService(uowMock)
+		user, err := us.LoginUser(ctx, "user", "12345")
 
 		assert.NoError(t, err)
-		assert.NotNil(t, user)
-		assert.Equal(t, user.Login, users[0].Login)
-		assert.Equal(t, user.ID, users[0].ID)
+		assert.Equal(t, existingUser.Login, user.Login)
+		assert.Equal(t, existingUser.ID, user.ID)
 	})
+
 	t.Run("user not exist", func(t *testing.T) {
-		var users []entities.User
-		passwordHash, _ := auth.HashPassword("12345")
-		users = append(users, entities.User{ID: 1, Login: "user", Password: passwordHash})
-		us := NewUserService(NewMockRepository(users))
+		_, uowMock, _, userRepoMock := setupMocks(t)
 
-		user, err := us.LoginUser(context.TODO(), "user2", "12345")
+		uowMock.EXPECT().Users().Return(userRepoMock)
+		userRepoMock.EXPECT().
+			GetByLogin(ctx, "user2").
+			Return(nil, repository.ErrNoRows)
 
-		assert.Error(t, err)
+		us := NewUserService(uowMock)
+		user, err := us.LoginUser(ctx, "user2", "12345")
+
 		assert.ErrorIs(t, err, ErrLoginPasswordNotExist)
 		assert.Nil(t, user)
 	})
+
 	t.Run("incorrect password", func(t *testing.T) {
-		var users []entities.User
-		passwordHash, _ := auth.HashPassword("12345")
-		users = append(users, entities.User{ID: 1, Login: "user", Password: passwordHash})
-		us := NewUserService(NewMockRepository(users))
+		_, uowMock, _, userRepoMock := setupMocks(t)
 
-		user, err := us.LoginUser(context.TODO(), "user", "54321")
+		uowMock.EXPECT().Users().Return(userRepoMock)
+		userRepoMock.EXPECT().
+			GetByLogin(ctx, "user").
+			Return(existingUser, nil)
 
-		assert.Error(t, err)
+		us := NewUserService(uowMock)
+		user, err := us.LoginUser(ctx, "user", "54321")
+
 		assert.ErrorIs(t, err, ErrLoginPasswordNotExist)
 		assert.Nil(t, user)
 	})

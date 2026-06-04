@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -9,36 +11,41 @@ import (
 )
 
 type UserRepositoryPostgres struct {
-	db *sqlx.DB
-	tx *sqlx.Tx
+	exec sqlx.ExtContext
 }
 
-func NewUserRepositoryPostgres(db *sqlx.DB) UserRepositoryPostgres {
-	return UserRepositoryPostgres{db: db}
+func NewUserRepositoryPostgres(db *sqlx.DB) *UserRepositoryPostgres {
+	return &UserRepositoryPostgres{exec: db}
 }
 
-func NewUserRepositoryPostgresTx(tx *sqlx.Tx) UserRepositoryPostgres {
-	return UserRepositoryPostgres{tx: tx}
+func NewUserRepositoryPostgresTx(tx *sqlx.Tx) *UserRepositoryPostgres {
+	return &UserRepositoryPostgres{exec: tx}
 }
 
 func (r *UserRepositoryPostgres) GetByID(ctx context.Context, id int64) (*entities.User, error) {
 	var user entities.User
-	err := sqlx.GetContext(ctx, r.getExecutor(), &user,
+	err := sqlx.GetContext(ctx, r.exec, &user,
 		`SELECT id, login, password FROM users WHERE id = $1`, id,
 	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNoRows
+	}
 	if err != nil {
-		return nil, fmt.Errorf("GetByID (id=%d): %w", id, err)
+		return nil, fmt.Errorf("GetByID: %w", err)
 	}
 	return &user, nil
 }
 
 func (r *UserRepositoryPostgres) GetByLogin(ctx context.Context, login string) (*entities.User, error) {
 	var user entities.User
-	err := sqlx.GetContext(ctx, r.getExecutor(), &user,
+	err := sqlx.GetContext(ctx, r.exec, &user,
 		`SELECT id, login, password FROM users WHERE login = $1`, login,
 	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNoRows
+	}
 	if err != nil {
-		return nil, fmt.Errorf("GetByLogin (login=%s): %w", login, err)
+		return nil, fmt.Errorf("GetByLogin: %w", err)
 	}
 	return &user, nil
 }
@@ -47,22 +54,19 @@ func (r *UserRepositoryPostgres) CreateUser(ctx context.Context, user entities.U
     INSERT INTO users (login, password)
     VALUES (:login, :password)
     RETURNING id`
-	var newID int64
-	rows, err := sqlx.NamedQueryContext(ctx, r.getExecutor(), insertQuery, user)
+	rows, err := sqlx.NamedQueryContext(ctx, r.exec, insertQuery, user)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreateUser: %w", err)
 	}
 	defer rows.Close()
-	if rows.Next() {
-		rows.Scan(&newID)
+	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return nil, fmt.Errorf("CreateUser: rows iteration: %w", err)
+		}
+		return nil, fmt.Errorf("CreateUser: no id returned after insert")
 	}
-	user.ID = newID
-	return &user, err
-}
-
-func (r *UserRepositoryPostgres) getExecutor() sqlx.ExtContext {
-	if r.tx != nil {
-		return r.tx
+	if err := rows.Scan(&user.ID); err != nil {
+		return nil, fmt.Errorf("CreateUser: scan returned id: %w", err)
 	}
-	return r.db
+	return &user, nil
 }

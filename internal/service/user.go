@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/scarypuppp/gophermart/internal/entities"
 	"github.com/scarypuppp/gophermart/internal/repository"
@@ -21,11 +22,11 @@ var ErrLoginPasswordNotExist = errors.New("user with such login and password doe
 //
 
 type UserService struct {
-	repo repository.UserRepository
+	uow repository.UnitOfWork
 }
 
-func NewUserService(repo repository.UserRepository) UserService {
-	return UserService{repo}
+func NewUserService(uow repository.UnitOfWork) *UserService {
+	return &UserService{uow}
 }
 
 // RegisterUser создает пользователя по логину и паролю.
@@ -35,31 +36,40 @@ func (us *UserService) RegisterUser(
 	password string,
 ) (*entities.User, error) {
 
-	err := entities.ValidatePassword(password)
+	err := entities.ValidateLogin(login)
 	if err != nil {
 		return nil, err
 	}
-	err = entities.ValidateLogin(login)
+	err = entities.ValidatePassword(password)
 	if err != nil {
 		return nil, err
 	}
 
-	existingUser, err := us.repo.GetByLogin(ctx, login)
+	tx, err := us.uow.BeginTx(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("RegisterUser: %w", err)
 	}
-	if existingUser != nil {
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Users().GetByLogin(ctx, login)
+	if err == nil {
 		return nil, ErrLoginAlreadyExists
+	}
+	if !errors.Is(err, repository.ErrNoRows) {
+		return nil, fmt.Errorf("RegisterUser: check login: %w", err)
 	}
 
 	passwordHash, err := auth.HashPassword(password)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("RegisterUser: hash password: %w", err)
 	}
 
-	user, err := us.repo.CreateUser(ctx, entities.User{Login: login, Password: passwordHash})
+	user, err := tx.Users().CreateUser(ctx, entities.User{Login: login, Password: passwordHash})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("RegisterUser: create user: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("RegisterUser: commit: %w", err)
 	}
 	return user, nil
 }
@@ -70,16 +80,16 @@ func (us *UserService) LoginUser(
 	login string,
 	password string,
 ) (*entities.User, error) {
-	user, err := us.repo.GetByLogin(ctx, login)
-	if err != nil {
-		return nil, err
-	}
-	if user == nil {
+	user, err := us.uow.Users().GetByLogin(ctx, login)
+	if errors.Is(err, repository.ErrNoRows) {
 		return nil, ErrLoginPasswordNotExist
+	}
+	if err != nil {
+		return nil, fmt.Errorf("LoginUser: %w", err)
 	}
 	err = auth.CheckPassword(password, user.Password)
 	if err != nil {
 		return nil, ErrLoginPasswordNotExist
 	}
-	return user, err
+	return user, nil
 }
