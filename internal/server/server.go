@@ -53,13 +53,13 @@ func (s *Server) Run() error {
 	}
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			log.Fatalf("Could not start server: %v", err)
+		if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			log.Printf("Could not start server: %v", err)
 		}
 	}()
 
 	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGINT)
+	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	<-quit
 
