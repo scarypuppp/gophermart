@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/scarypuppp/gophermart/internal/auth"
 	"github.com/scarypuppp/gophermart/internal/entities"
 	"github.com/scarypuppp/gophermart/internal/repository"
-	"github.com/scarypuppp/gophermart/internal/utils/auth"
 )
 
 //
@@ -22,11 +22,12 @@ var ErrLoginPasswordNotExist = errors.New("user with such login and password doe
 //
 
 type UserService struct {
-	uow repository.UnitOfWork
+	uow            repository.UnitOfWork
+	passwordHasher auth.PasswordHasher
 }
 
-func NewUserService(uow repository.UnitOfWork) *UserService {
-	return &UserService{uow}
+func NewUserService(uow repository.UnitOfWork, passwordHasher auth.PasswordHasher) *UserService {
+	return &UserService{uow, passwordHasher}
 }
 
 // RegisterUser создает пользователя по логину и паролю.
@@ -59,7 +60,7 @@ func (us *UserService) RegisterUser(
 		return nil, fmt.Errorf("RegisterUser: check login: %w", err)
 	}
 
-	passwordHash, err := auth.HashPassword(password)
+	passwordHash, err := us.passwordHasher.HashPassword(password)
 	if err != nil {
 		return nil, fmt.Errorf("RegisterUser: hash password: %w", err)
 	}
@@ -87,9 +88,10 @@ func (us *UserService) LoginUser(
 	if err != nil {
 		return nil, fmt.Errorf("LoginUser: %w", err)
 	}
-	err = auth.CheckPassword(password, user.Password)
+	err = us.passwordHasher.CheckPassword(password, user.Password)
 	if err != nil {
 		return nil, ErrLoginPasswordNotExist
 	}
+
 	return user, nil
 }
