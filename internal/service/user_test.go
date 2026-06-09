@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/scarypuppp/gophermart/internal/auth"
 	"github.com/scarypuppp/gophermart/internal/entities"
 	"github.com/scarypuppp/gophermart/internal/repository"
 	"github.com/scarypuppp/gophermart/internal/repository/mocks"
-	"github.com/scarypuppp/gophermart/internal/utils/auth"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )

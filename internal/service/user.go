@@ -22,12 +22,11 @@ var ErrLoginPasswordNotExist = errors.New("user with such login and password doe
 //
 
 type UserService struct {
-	uow            repository.UnitOfWork
-	passwordHasher auth.PasswordHasher
+	uow repository.UnitOfWork
 }
 
-func NewUserService(uow repository.UnitOfWork, passwordHasher auth.PasswordHasher) *UserService {
-	return &UserService{uow, passwordHasher}
+func NewUserService(uow repository.UnitOfWork) *UserService {
+	return &UserService{uow}
 }
 
 // RegisterUser создает пользователя по логину и паролю.
@@ -60,7 +59,7 @@ func (us *UserService) RegisterUser(
 		return nil, fmt.Errorf("RegisterUser: check login: %w", err)
 	}
 
-	passwordHash, err := us.passwordHasher.HashPassword(password)
+	passwordHash, err := auth.HashPassword(password)
 	if err != nil {
 		return nil, fmt.Errorf("RegisterUser: hash password: %w", err)
 	}
@@ -88,7 +87,7 @@ func (us *UserService) LoginUser(
 	if err != nil {
 		return nil, fmt.Errorf("LoginUser: %w", err)
 	}
-	err = us.passwordHasher.CheckPassword(password, user.Password)
+	err = auth.CheckPassword(password, user.Password)
 	if err != nil {
 		return nil, ErrLoginPasswordNotExist
 	}

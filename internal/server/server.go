@@ -42,7 +42,7 @@ func (s *Server) Run() error {
 
 	uow := repository.NewUnitOfWorkPostgres(db)
 	us := service.NewUserService(uow)
-	api := handlers.NewApi(us)
+	api := handlers.NewHandler(s.Config, us)
 
 	srv := &http.Server{
 		Addr:         s.Config.Address,
