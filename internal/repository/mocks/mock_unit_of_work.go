@@ -70,6 +70,20 @@ func (mr *MockUnitOfWorkMockRecorder) Commit(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Commit", reflect.TypeOf((*MockUnitOfWork)(nil).Commit), ctx)
 }
 
+// Orders mocks base method.
+func (m *MockUnitOfWork) Orders() repository.OrderRepository {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Orders")
+	ret0, _ := ret[0].(repository.OrderRepository)
+	return ret0
+}
+
+// Orders indicates an expected call of Orders.
+func (mr *MockUnitOfWorkMockRecorder) Orders() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Orders", reflect.TypeOf((*MockUnitOfWork)(nil).Orders))
+}
+
 // Rollback mocks base method.
 func (m *MockUnitOfWork) Rollback(ctx context.Context) error {
 	m.ctrl.T.Helper()

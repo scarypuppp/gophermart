@@ -12,7 +12,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func setupMocks(t *testing.T) (
+func setupUserMocks(t *testing.T) (
 	*gomock.Controller,
 	*mocks.MockUnitOfWork,
 	*mocks.MockUnitOfWork,
@@ -29,7 +29,7 @@ func TestRegisterUser(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("success", func(t *testing.T) {
-		_, uowMock, uowTxMock, userRepoMock := setupMocks(t)
+		_, uowMock, uowTxMock, userRepoMock := setupUserMocks(t)
 
 		uowMock.EXPECT().BeginTx(ctx).Return(uowTxMock, nil)
 		uowTxMock.EXPECT().Rollback(ctx).Return(nil)
@@ -52,7 +52,7 @@ func TestRegisterUser(t *testing.T) {
 	})
 
 	t.Run("incorrect login", func(t *testing.T) {
-		_, uowMock, _, _ := setupMocks(t)
+		_, uowMock, _, _ := setupUserMocks(t)
 
 		us := NewUserService(uowMock)
 		_, err := us.RegisterUser(ctx, "", "12345")
@@ -61,7 +61,7 @@ func TestRegisterUser(t *testing.T) {
 	})
 
 	t.Run("incorrect password", func(t *testing.T) {
-		_, uowMock, _, _ := setupMocks(t)
+		_, uowMock, _, _ := setupUserMocks(t)
 
 		us := NewUserService(uowMock)
 		_, err := us.RegisterUser(ctx, "user", "1")
@@ -70,7 +70,7 @@ func TestRegisterUser(t *testing.T) {
 	})
 
 	t.Run("duplicate login", func(t *testing.T) {
-		_, uowMock, uowTxMock, userRepoMock := setupMocks(t)
+		_, uowMock, uowTxMock, userRepoMock := setupUserMocks(t)
 
 		uowMock.EXPECT().BeginTx(ctx).Return(uowTxMock, nil)
 		uowTxMock.EXPECT().Rollback(ctx).Return(nil)
@@ -92,7 +92,7 @@ func TestLoginUser(t *testing.T) {
 	existingUser := &entities.User{ID: 1, Login: "user", Password: passwordHash}
 
 	t.Run("success", func(t *testing.T) {
-		_, uowMock, _, userRepoMock := setupMocks(t)
+		_, uowMock, _, userRepoMock := setupUserMocks(t)
 
 		uowMock.EXPECT().Users().Return(userRepoMock)
 		userRepoMock.EXPECT().
@@ -108,7 +108,7 @@ func TestLoginUser(t *testing.T) {
 	})
 
 	t.Run("user not exist", func(t *testing.T) {
-		_, uowMock, _, userRepoMock := setupMocks(t)
+		_, uowMock, _, userRepoMock := setupUserMocks(t)
 
 		uowMock.EXPECT().Users().Return(userRepoMock)
 		userRepoMock.EXPECT().
@@ -123,7 +123,7 @@ func TestLoginUser(t *testing.T) {
 	})
 
 	t.Run("incorrect password", func(t *testing.T) {
-		_, uowMock, _, userRepoMock := setupMocks(t)
+		_, uowMock, _, userRepoMock := setupUserMocks(t)
 
 		uowMock.EXPECT().Users().Return(userRepoMock)
 		userRepoMock.EXPECT().
