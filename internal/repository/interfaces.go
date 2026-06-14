@@ -31,4 +31,6 @@ type OrderRepository interface {
 	CreateOrder(ctx context.Context, order entities.Order) error
 	GetOrderByNumber(ctx context.Context, number string) (*entities.Order, error)
 	GetOrdersByUserId(ctx context.Context, userId int64) ([]entities.Order, error)
+	GetOrdersToPoll(ctx context.Context) ([]entities.Order, error)
+	UpdateOrders(ctx context.Context, orders []entities.Order) error
 }

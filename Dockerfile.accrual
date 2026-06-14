@@ -1,0 +1,6 @@
+FROM debian:bookworm-slim
+WORKDIR /app
+COPY cmd/accrual/accrual_linux_amd64 ./accrual
+RUN chmod +x ./accrual
+EXPOSE 8081
+CMD ["./accrual", "-a", ":8081"]

@@ -1,9 +1,27 @@
 services:
-  web:
+  accrual:
+    build:
+      context: .
+      dockerfile: Dockerfile.accrual
+    platform: linux/amd64
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+
+  gophermart:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - .env
+    environment:
+      RUN_ADDRESS: ":8080"
+      DATABASE_URI: "postgres://gophermart:gophermart@host.docker.internal:5432/gophermart?sslmode=disable"
+      ACCRUAL_SYSTEM_ADDRESS: "accrual:8081"
+    depends_on:
+      - accrual
+    restart: unless-stopped

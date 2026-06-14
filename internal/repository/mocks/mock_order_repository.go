@@ -84,3 +84,32 @@ func (mr *MockOrderRepositoryMockRecorder) GetOrdersByUserId(ctx, userId any) *g
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrdersByUserId", reflect.TypeOf((*MockOrderRepository)(nil).GetOrdersByUserId), ctx, userId)
 }
+
+// GetOrdersToPoll mocks base method.
+func (m *MockOrderRepository) GetOrdersToPoll(ctx context.Context) ([]entities.Order, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOrdersToPoll", ctx)
+	ret0, _ := ret[0].([]entities.Order)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOrdersToPoll indicates an expected call of GetOrdersToPoll.
+func (mr *MockOrderRepositoryMockRecorder) GetOrdersToPoll(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrdersToPoll", reflect.TypeOf((*MockOrderRepository)(nil).GetOrdersToPoll), ctx)
+}
+
+// UpdateOrders mocks base method.
+func (m *MockOrderRepository) UpdateOrders(ctx context.Context, orders []entities.Order) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateOrders", ctx, orders)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateOrders indicates an expected call of UpdateOrders.
+func (mr *MockOrderRepositoryMockRecorder) UpdateOrders(ctx, orders any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateOrders", reflect.TypeOf((*MockOrderRepository)(nil).UpdateOrders), ctx, orders)
+}
