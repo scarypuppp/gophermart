@@ -63,11 +63,8 @@ func (s *OrderService) GetOrCreateOrder(ctx context.Context, userId int64, numbe
 	return &order, true, nil
 }
 
-func (s *OrderService) GetOrders(ctx context.Context, userId int64) (*[]entities.Order, error) {
+func (s *OrderService) GetOrders(ctx context.Context, userId int64) ([]entities.Order, error) {
 	orders, err := s.uow.Orders().GetOrdersByUserId(ctx, userId)
-	if errors.Is(err, repository.ErrNoRows) {
-		return &[]entities.Order{}, nil
-	}
 	if err != nil {
 		return nil, fmt.Errorf("GetOrders: error getting orders: %w", err)
 	}

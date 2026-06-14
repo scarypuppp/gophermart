@@ -41,7 +41,7 @@ func ParseToken(secretKey string, tokenString string) (int64, error) {
 		return -1, err
 	}
 	if !token.Valid {
-		return -1, fmt.Errorf("%w", token.Claims.Valid().Error())
+		return -1, fmt.Errorf("%w", token.Claims.Valid())
 	}
 	return claims.UserID, nil
 }

@@ -71,10 +71,10 @@ func (mr *MockOrderRepositoryMockRecorder) GetOrderByNumber(ctx, number any) *go
 }
 
 // GetOrdersByUserId mocks base method.
-func (m *MockOrderRepository) GetOrdersByUserId(ctx context.Context, userId int64) (*[]entities.Order, error) {
+func (m *MockOrderRepository) GetOrdersByUserId(ctx context.Context, userId int64) ([]entities.Order, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOrdersByUserId", ctx, userId)
-	ret0, _ := ret[0].(*[]entities.Order)
+	ret0, _ := ret[0].([]entities.Order)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

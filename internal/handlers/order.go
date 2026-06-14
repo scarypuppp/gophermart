@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -28,14 +27,18 @@ import (
 // 422 — неверный формат номера заказа;
 // 500 — внутренняя ошибка сервера.
 func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middlewares.UserIDKey).(int64)
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
 	var buff bytes.Buffer
 	_, err := buff.ReadFrom(r.Body)
 	if err != nil {
-		fmt.Println(err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	_, created, err := h.orderService.GetOrCreateOrder(r.Context(), 1, buff.String())
+	_, created, err := h.orderService.GetOrCreateOrder(r.Context(), userID, buff.String())
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrInvalidOrderNumber):
@@ -45,17 +48,15 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
 			return
 		default:
-			fmt.Println(err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	}
-	if !created {
+	if created {
 		w.WriteHeader(http.StatusAccepted)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	return
 }
 
 //
@@ -92,13 +93,13 @@ func (h *Handler) GetOrders(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	if len(*orders) == 0 {
-		http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
+	if len(orders) == 0 {
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
 	var responseItems GetOrdersResponse
-	for _, order := range *orders {
+	for _, order := range orders {
 		responseItems = append(responseItems, GetOrdersResponseItem{
 			Number:     order.Number,
 			Status:     string(order.Status),

@@ -47,16 +47,13 @@ func (r *OrderRepositoryPostgres) GetOrderByNumber(ctx context.Context, number s
 	return &order, nil
 }
 
-func (r *OrderRepositoryPostgres) GetOrdersByUserId(ctx context.Context, userId int64) (*[]entities.Order, error) {
+func (r *OrderRepositoryPostgres) GetOrdersByUserId(ctx context.Context, userId int64) ([]entities.Order, error) {
 	var orders []entities.Order
 	err := sqlx.SelectContext(ctx, r.exec, &orders,
 		`SELECT number, status, accrual, user_id, uploaded_at FROM orders WHERE user_id = $1`, userId,
 	)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrNoRows
-	}
 	if err != nil {
 		return nil, fmt.Errorf("GetOrdersByUserId: %w", err)
 	}
-	return &orders, nil
+	return orders, nil
 }

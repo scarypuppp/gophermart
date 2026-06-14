@@ -112,26 +112,26 @@ func TestGetOrders(t *testing.T) {
 		_, uowMock, _, orderRepoMock := setupOrderMocks(t)
 		uowMock.EXPECT().Orders().Return(orderRepoMock)
 		orderRepoMock.EXPECT().GetOrdersByUserId(ctx, gomock.Any()).
-			Return(&[]entities.Order{{Number: "123", Status: entities.StatusNew, UserID: 1}}, nil)
+			Return([]entities.Order{{Number: "123", Status: entities.StatusNew, UserID: 1}}, nil)
 
 		s := NewOrderService(uowMock)
 		orders, err := s.GetOrders(ctx, 1)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, orders)
-		assert.Len(t, *orders, 1)
+		assert.Len(t, orders, 1)
 	})
 	t.Run("empty list on no rows", func(t *testing.T) {
 		_, uowMock, _, orderRepoMock := setupOrderMocks(t)
 		uowMock.EXPECT().Orders().Return(orderRepoMock)
 		orderRepoMock.EXPECT().GetOrdersByUserId(ctx, gomock.Any()).
-			Return(nil, repository.ErrNoRows)
+			Return([]entities.Order{}, nil)
 
 		s := NewOrderService(uowMock)
 		orders, err := s.GetOrders(ctx, 1)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, orders)
-		assert.Len(t, *orders, 0)
+		assert.Len(t, orders, 0)
 	})
 }
