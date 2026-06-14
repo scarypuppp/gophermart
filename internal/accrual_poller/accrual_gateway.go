@@ -15,9 +15,9 @@ var ErrNotRegistered = errors.New("order not registered in accrual")
 var ErrTooManyRequests = errors.New("accrual rate limit exceeded")
 
 type AccrualResponse struct {
-	Order   string `json:"order"`
-	Status  string `json:"status"`
-	Accrual *int64 `json:"accrual,omitempty"`
+	Order   string   `json:"order"`
+	Status  string   `json:"status"`
+	Accrual *float64 `json:"accrual,omitempty"`
 }
 
 type RetryAfterError struct {

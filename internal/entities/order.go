@@ -14,7 +14,7 @@ const (
 type Order struct {
 	Number     string      `db:"number"`
 	Status     OrderStatus `db:"status"`
-	Accrual    *int64      `db:"accrual"`
+	Accrual    *float64    `db:"accrual"`
 	UserID     int64       `db:"user_id"`
 	UploadedAt time.Time   `db:"uploaded_at"`
 }

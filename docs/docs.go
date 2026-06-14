@@ -31,7 +31,10 @@ const docTemplate = `{
                 "summary": "Получение баланса пользователя",
                 "responses": {
                     "200": {
-                        "description": "Успешная обработка запроса"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.GetBalanceResponse"
+                        }
                     },
                     "401": {
                         "description": "Пользователь не авторизован",
@@ -49,16 +52,30 @@ const docTemplate = `{
             }
         },
         "/api/user/balance/withdraw": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
+                "consumes": [
+                    "application/json"
+                ],
                 "tags": [
                     "balance"
                 ],
                 "summary": "Запрос на списание средств",
+                "parameters": [
+                    {
+                        "description": "Данные списания",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.CreateWithdrawRequest"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Успешная обработка запроса"
@@ -82,7 +99,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Внутренняя ошибка",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "string"
                         }
@@ -313,7 +330,13 @@ const docTemplate = `{
                 "summary": "Получение списка списаний",
                 "responses": {
                     "200": {
-                        "description": "Успешная обработка запроса"
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handlers.WithdrawalResponseItem"
+                            }
+                        }
                     },
                     "204": {
                         "description": "Нет списаний"
@@ -335,11 +358,33 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "handlers.CreateWithdrawRequest": {
+            "type": "object",
+            "properties": {
+                "order": {
+                    "type": "string"
+                },
+                "sum": {
+                    "type": "number"
+                }
+            }
+        },
+        "handlers.GetBalanceResponse": {
+            "type": "object",
+            "properties": {
+                "current": {
+                    "type": "number"
+                },
+                "withdrawn": {
+                    "type": "number"
+                }
+            }
+        },
         "handlers.GetOrdersResponseItem": {
             "type": "object",
             "properties": {
                 "accrual": {
-                    "type": "integer"
+                    "type": "number"
                 },
                 "number": {
                     "type": "string"
@@ -349,6 +394,20 @@ const docTemplate = `{
                 },
                 "uploaded_at": {
                     "type": "string"
+                }
+            }
+        },
+        "handlers.WithdrawalResponseItem": {
+            "type": "object",
+            "properties": {
+                "order": {
+                    "type": "string"
+                },
+                "processed_at": {
+                    "type": "string"
+                },
+                "sum": {
+                    "type": "number"
                 }
             }
         },

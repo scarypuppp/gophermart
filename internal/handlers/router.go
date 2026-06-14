@@ -16,7 +16,10 @@ func (h *Handler) GetRouter() http.Handler {
 	r.Use(mw.LogRequest)
 	r.Use(mw.LogResponse)
 
-	r.Get("/swagger/*", httpSwagger.Handler())
+	r.Get("/swagger/*", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		httpSwagger.Handler()(w, r)
+	})
 
 	r.Post("/api/user/register", h.Register)
 	r.Post("/api/user/login", h.Login)
@@ -26,7 +29,7 @@ func (h *Handler) GetRouter() http.Handler {
 		r.Post("/api/user/orders", h.CreateOrder)
 		r.Get("/api/user/orders", h.GetOrders)
 		r.Get("/api/user/balance", h.GetBalance)
-		r.Get("/api/user/balance/withdraw", h.CreateWithdraw)
+		r.Post("/api/user/balance/withdraw", h.CreateWithdraw)
 		r.Get("/api/user/withdrawals", h.GetWithdrawals)
 	})
 

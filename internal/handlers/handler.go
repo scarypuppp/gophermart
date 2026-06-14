@@ -7,10 +7,11 @@ import (
 )
 
 type Handler struct {
-	config       *config.Config
-	logger       *zap.Logger
-	userService  *service.UserService
-	orderService *service.OrderService
+	config             *config.Config
+	logger             *zap.Logger
+	userService        *service.UserService
+	orderService       *service.OrderService
+	transactionService *service.TransactionService
 }
 
 func NewHandler(
@@ -18,11 +19,13 @@ func NewHandler(
 	logger *zap.Logger,
 	userService *service.UserService,
 	orderService *service.OrderService,
+	transactionService *service.TransactionService,
 ) *Handler {
 	return &Handler{
-		config:       cfg,
-		logger:       logger,
-		userService:  userService,
-		orderService: orderService,
+		config:             cfg,
+		logger:             logger,
+		userService:        userService,
+		orderService:       orderService,
+		transactionService: transactionService,
 	}
 }

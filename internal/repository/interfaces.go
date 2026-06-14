@@ -1,6 +1,7 @@
 //go:generate mockgen -destination=mocks/mock_unit_of_work.go -package=mocks . UnitOfWork
 //go:generate mockgen -destination=mocks/mock_user_repository.go -package=mocks . UserRepository
 //go:generate mockgen -destination=mocks/mock_order_repository.go -package=mocks . OrderRepository
+//go:generate mockgen -destination=mocks/mock_transaction_repository.go -package=mocks . TransactionRepository
 package repository
 
 import (
@@ -15,6 +16,7 @@ var ErrNoRows = errors.New("no rows returned")
 type UnitOfWork interface {
 	Users() UserRepository
 	Orders() OrderRepository
+	Transactions() TransactionRepository
 
 	BeginTx(ctx context.Context) (UnitOfWork, error)
 	Commit(ctx context.Context) error
@@ -33,4 +35,10 @@ type OrderRepository interface {
 	GetOrdersByUserId(ctx context.Context, userId int64) ([]entities.Order, error)
 	GetOrdersToPoll(ctx context.Context) ([]entities.Order, error)
 	UpdateOrders(ctx context.Context, orders []entities.Order) error
+}
+
+type TransactionRepository interface {
+	CreateTransaction(ctx context.Context, transaction entities.Transaction) (entities.Transaction, error)
+	GetBalance(ctx context.Context, userId int64) (entities.Balance, error)
+	GetWithdrawals(ctx context.Context, userId int64) ([]entities.Withdrawal, error)
 }

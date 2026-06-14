@@ -1,14 +1,37 @@
 definitions:
+  handlers.CreateWithdrawRequest:
+    properties:
+      order:
+        type: string
+      sum:
+        type: number
+    type: object
+  handlers.GetBalanceResponse:
+    properties:
+      current:
+        type: number
+      withdrawn:
+        type: number
+    type: object
   handlers.GetOrdersResponseItem:
     properties:
       accrual:
-        type: integer
+        type: number
       number:
         type: string
       status:
         type: string
       uploaded_at:
         type: string
+    type: object
+  handlers.WithdrawalResponseItem:
+    properties:
+      order:
+        type: string
+      processed_at:
+        type: string
+      sum:
+        type: number
     type: object
   handlers.loginRequest:
     properties:
@@ -43,7 +66,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: Успешная обработка запроса
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.GetBalanceResponse'
         "401":
           description: Пользователь не авторизован
           schema:
@@ -58,7 +83,16 @@ paths:
       tags:
       - balance
   /api/user/balance/withdraw:
-    get:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Данные списания
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateWithdrawRequest'
       responses:
         "200":
           description: Успешная обработка запроса
@@ -75,7 +109,7 @@ paths:
           schema:
             type: string
         "500":
-          description: Внутренняя ошибка
+          description: Внутренняя ошибка сервера
           schema:
             type: string
       security:
@@ -221,7 +255,11 @@ paths:
       - application/json
       responses:
         "200":
-          description: Успешная обработка запроса
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.WithdrawalResponseItem'
+            type: array
         "204":
           description: Нет списаний
         "401":

@@ -98,6 +98,20 @@ func (mr *MockUnitOfWorkMockRecorder) Rollback(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rollback", reflect.TypeOf((*MockUnitOfWork)(nil).Rollback), ctx)
 }
 
+// Transactions mocks base method.
+func (m *MockUnitOfWork) Transactions() repository.TransactionRepository {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Transactions")
+	ret0, _ := ret[0].(repository.TransactionRepository)
+	return ret0
+}
+
+// Transactions indicates an expected call of Transactions.
+func (mr *MockUnitOfWorkMockRecorder) Transactions() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Transactions", reflect.TypeOf((*MockUnitOfWork)(nil).Transactions))
+}
+
 // Users mocks base method.
 func (m *MockUnitOfWork) Users() repository.UserRepository {
 	m.ctrl.T.Helper()

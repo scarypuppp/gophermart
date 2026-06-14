@@ -54,7 +54,8 @@ func (s *Server) Run() error {
 	uow := repository.NewUnitOfWorkPostgres(db)
 	userService := service.NewUserService(uow)
 	orderService := service.NewOrderService(uow)
-	handler := handlers.NewHandler(s.Config, logger, userService, orderService)
+	transactionService := service.NewTransactionService(uow)
+	handler := handlers.NewHandler(s.Config, logger, userService, orderService, transactionService)
 
 	poller := accrual_poller.NewAccrualPoller(s.Config.AccrualSystemAddr, uow, logger)
 	go poller.Run(ctx)

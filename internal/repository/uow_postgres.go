@@ -7,25 +7,27 @@ import (
 )
 
 type UnitOfWorkPostgres struct {
-	db     *sqlx.DB
-	tx     *sqlx.Tx
-	users  *UserRepositoryPostgres
-	orders *OrderRepositoryPostgres
+	db           *sqlx.DB
+	tx           *sqlx.Tx
+	users        *UserRepositoryPostgres
+	orders       *OrderRepositoryPostgres
+	transactions *TransactionRepositoryPostgres
 }
 
 func NewUnitOfWorkPostgres(db *sqlx.DB) *UnitOfWorkPostgres {
 	return &UnitOfWorkPostgres{
-		db:     db,
-		users:  NewUserRepositoryPostgres(db),
-		orders: NewOrderRepositoryPostgres(db),
+		db:           db,
+		users:        NewUserRepositoryPostgres(db),
+		orders:       NewOrderRepositoryPostgres(db),
+		transactions: NewTransactionRepositoryPostgres(db),
 	}
 }
 
-func (u *UnitOfWorkPostgres) Users() UserRepository {
-	return u.users
-}
+func (u *UnitOfWorkPostgres) Users() UserRepository { return u.users }
 
 func (u *UnitOfWorkPostgres) Orders() OrderRepository { return u.orders }
+
+func (u *UnitOfWorkPostgres) Transactions() TransactionRepository { return u.transactions }
 
 func (u *UnitOfWorkPostgres) BeginTx(ctx context.Context) (UnitOfWork, error) {
 	tx, err := u.db.BeginTxx(ctx, nil)
@@ -34,10 +36,11 @@ func (u *UnitOfWorkPostgres) BeginTx(ctx context.Context) (UnitOfWork, error) {
 	}
 
 	return &UnitOfWorkPostgres{
-		db:     u.db,
-		tx:     tx,
-		users:  NewUserRepositoryPostgresTx(tx),
-		orders: NewOrderRepositoryPostgresTx(tx),
+		db:           u.db,
+		tx:           tx,
+		users:        NewUserRepositoryPostgresTx(tx),
+		orders:       NewOrderRepositoryPostgresTx(tx),
+		transactions: NewTransactionRepositoryPostgresTx(tx),
 	}, nil
 }
 

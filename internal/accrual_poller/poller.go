@@ -51,7 +51,6 @@ func (p *AccrualPoller) poll(ctx context.Context) error {
 		return nil
 	}
 
-	var toUpdate []entities.Order
 	for _, order := range orders {
 		resp, err := GetAccrualOrder(p.client, order.Number)
 		if err != nil {
@@ -76,16 +75,36 @@ func (p *AccrualPoller) poll(ctx context.Context) error {
 		if updated == nil {
 			continue
 		}
-		toUpdate = append(toUpdate, *updated)
-	}
-
-	if len(toUpdate) == 0 {
-		return nil
-	}
-	if err := p.uow.Orders().UpdateOrders(ctx, toUpdate); err != nil {
-		return fmt.Errorf("UpdateOrders: %w", err)
+		if err := p.applyUpdate(ctx, *updated); err != nil {
+			p.logger.Error("applyUpdate failed", zap.String("order", order.Number), zap.Error(err))
+		}
 	}
 	return nil
+}
+
+func (p *AccrualPoller) applyUpdate(ctx context.Context, order entities.Order) error {
+	tx, err := p.uow.BeginTx(ctx)
+	if err != nil {
+		return fmt.Errorf("BeginTx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if err := tx.Orders().UpdateOrders(ctx, []entities.Order{order}); err != nil {
+		return fmt.Errorf("UpdateOrders: %w", err)
+	}
+
+	if order.Status == entities.StatusProcessed && order.Accrual != nil {
+		_, err = tx.Transactions().CreateTransaction(ctx, entities.Transaction{
+			UserID:      order.UserID,
+			Amount:      *order.Accrual,
+			OrderNumber: order.Number,
+		})
+		if err != nil {
+			return fmt.Errorf("CreateTransaction: %w", err)
+		}
+	}
+
+	return tx.Commit(ctx)
 }
 
 func mapStatus(order entities.Order, resp *AccrualResponse) *entities.Order {
