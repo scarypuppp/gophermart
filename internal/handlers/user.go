@@ -20,7 +20,18 @@ type registerRequest struct {
 	Password string `json:"password"`
 }
 
-// Register Хэндлер для регистрации пользователя
+// Register godoc
+//
+//	@Summary		Регистрация пользователя
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		plain
+//	@Param			body	body		registerRequest	true	"Данные пользователя"
+//	@Success		200
+//	@Failure		400	{string}	string	"Неверный формат запроса"
+//	@Failure		409	{string}	string	"Логин уже занят"
+//	@Failure		500	{string}	string	"Внутренняя ошибка"
+//	@Router			/api/user/register [post]
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	var buffer bytes.Buffer
 	var requestData registerRequest
@@ -52,6 +63,18 @@ type loginResponse struct {
 	AccessToken string `json:"access_token"`
 }
 
+// Login godoc
+//
+//	@Summary		Аутентификация пользователя
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		loginRequest	true	"Данные пользователя"
+//	@Success		200	{object}	loginResponse
+//	@Failure		400	{string}	string	"Неверный формат запроса"
+//	@Failure		401	{string}	string	"Неверный логин или пароль"
+//	@Failure		500	{string}	string	"Внутренняя ошибка"
+//	@Router			/api/user/login [post]
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var buffer bytes.Buffer
 	var requestData loginRequest

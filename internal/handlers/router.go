@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/scarypuppp/gophermart/internal/middlewares"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 func (h *Handler) GetRouter() http.Handler {
@@ -14,6 +15,8 @@ func (h *Handler) GetRouter() http.Handler {
 
 	r.Use(mw.LogRequest)
 	r.Use(mw.LogResponse)
+
+	r.Get("/swagger/*", httpSwagger.Handler())
 
 	r.Post("/api/user/register", h.Register)
 	r.Post("/api/user/login", h.Login)

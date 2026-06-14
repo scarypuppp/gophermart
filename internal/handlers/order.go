@@ -15,17 +15,22 @@ import (
 // CREATE ORDER
 //
 
-// CreateOrder Хэндлер для создания заказа
-// METHOD: POST
-// Content-Type: text/plain
-// Возможные коды ответа:
-// 200 — номер заказа уже был загружен этим пользователем;
-// 202 — новый номер заказа принят в обработку;
-// 400 — неверный формат запроса;
-// 401 — пользователь не аутентифицирован;
-// 409 — номер заказа уже был загружен другим пользователем;
-// 422 — неверный формат номера заказа;
-// 500 — внутренняя ошибка сервера.
+// CreateOrder godoc
+//
+//	@Summary		Загрузка номера заказа
+//	@Tags			orders
+//	@Accept			plain
+//	@Produce		plain
+//	@Security		BearerAuth
+//	@Param			body	body		string	true	"Номер заказа"
+//	@Success		200		"Заказ уже был загружен этим пользователем"
+//	@Success		202		"Новый заказ принят в обработку"
+//	@Failure		400		{string}	string	"Неверный формат запроса"
+//	@Failure		401		{string}	string	"Пользователь не аутентифицирован"
+//	@Failure		409		{string}	string	"Заказ уже загружен другим пользователем"
+//	@Failure		422		{string}	string	"Неверный формат номера заказа"
+//	@Failure		500		{string}	string	"Внутренняя ошибка"
+//	@Router			/api/user/orders [post]
 func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(middlewares.UserIDKey).(int64)
 	if !ok {
@@ -74,14 +79,17 @@ type GetOrdersResponseItem struct {
 // GetOrdersResponse список элементов хэндлера GetOrders
 type GetOrdersResponse []GetOrdersResponseItem
 
-// GetOrders Хэндлер для получения заказов
-// METHOD: GET
-// Content-Length: 0
-// Возможные коды ответа:
-// 200 — успешная обработка запроса.
-// 204 — нет данных для ответа.
-// 401 — пользователь не авторизован.
-// 500 — внутренняя ошибка сервера.
+// GetOrders godoc
+//
+//	@Summary		Получение списка заказов
+//	@Tags			orders
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Success		200	{array}		GetOrdersResponseItem
+//	@Success		204	"Нет данных"
+//	@Failure		401	{string}	string	"Пользователь не авторизован"
+//	@Failure		500	{string}	string	"Внутренняя ошибка"
+//	@Router			/api/user/orders [get]
 func (h *Handler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(middlewares.UserIDKey).(int64)
 	if !ok {

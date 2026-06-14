@@ -12,3 +12,6 @@ docker-run:
 
 run-dev:
 	go run ./cmd/gophermart/main.go
+
+make run-accrual:
+	./cmd/accrual/accrual_darwin_arm64 -a localhost:8081
