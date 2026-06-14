@@ -54,7 +54,7 @@ type loginResponse struct {
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var buffer bytes.Buffer
-	var requestData registerRequest
+	var requestData loginRequest
 	_, err := buffer.ReadFrom(r.Body)
 	if err = json.Unmarshal(buffer.Bytes(), &requestData); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

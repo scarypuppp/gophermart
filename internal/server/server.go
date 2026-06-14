@@ -17,6 +17,7 @@ import (
 	"github.com/scarypuppp/gophermart/internal/handlers"
 	"github.com/scarypuppp/gophermart/internal/repository"
 	"github.com/scarypuppp/gophermart/internal/service"
+	"go.uber.org/zap"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -31,22 +32,29 @@ func NewServer(config *config.Config) *Server {
 }
 
 func (s *Server) Run() error {
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatalf("Could not create logger: %v", err)
+	}
+	defer logger.Sync()
+
 	db, err := repository.NewPostgresDB(s.Config.DatabaseURI)
 	if err != nil {
-		log.Fatalf("Could not create database connection: %v", err)
+		logger.Fatal("Could not create database connection", zap.Error(err))
 	}
 
 	if err := runMigrations(s.Config.DatabaseURI); err != nil {
-		log.Fatal(err)
+		logger.Fatal("Error running migrations", zap.Error(err))
 	}
 
 	uow := repository.NewUnitOfWorkPostgres(db)
-	us := service.NewUserService(uow)
-	api := handlers.NewHandler(s.Config, us)
+	userService := service.NewUserService(uow)
+	orderService := service.NewOrderService(uow)
+	handler := handlers.NewHandler(s.Config, logger, userService, orderService)
 
 	srv := &http.Server{
 		Addr:         s.Config.Address,
-		Handler:      api.GetRouter(),
+		Handler:      handler.GetRouter(),
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -54,10 +62,10 @@ func (s *Server) Run() error {
 
 	go func() {
 		if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			log.Printf("Could not start server: %v", err)
+			logger.Fatal("Could not start server", zap.Error(err))
 		}
 	}()
-
+	logger.Info("Server started", zap.String("address", s.Config.Address))
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
@@ -65,7 +73,7 @@ func (s *Server) Run() error {
 
 	ctx, shutdown := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdown()
-
+	logger.Info("Server stopped gracefully")
 	return srv.Shutdown(ctx)
 }
 

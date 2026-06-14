@@ -12,11 +12,11 @@ const (
 )
 
 type Order struct {
-	Number     string
-	Status     OrderStatus
-	Accrual    *int64
-	UserID     int64
-	UploadedAt time.Time
+	Number     string      `db:"number"`
+	Status     OrderStatus `db:"status"`
+	Accrual    *int64      `db:"accrual"`
+	UserID     int64       `db:"user_id"`
+	UploadedAt time.Time   `db:"uploaded_at"`
 }
 
 func ValidateOrderNumber(number string) bool {
