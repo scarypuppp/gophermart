@@ -7,27 +7,32 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/scarypuppp/gophermart/internal/config"
 	"github.com/scarypuppp/gophermart/internal/entities"
 	"github.com/scarypuppp/gophermart/internal/service"
 	"go.uber.org/zap"
 )
 
-const pollInterval = 2 * time.Second
-
 type AccrualPoller struct {
 	client             *resty.Client
+	cfg                *config.Config
+	logger             *zap.Logger
 	orderService       *service.OrderService
 	transactionService *service.TransactionService
-	logger             *zap.Logger
 }
 
-func NewAccrualPoller(address string, orderService *service.OrderService, transactionService *service.TransactionService, logger *zap.Logger) *AccrualPoller {
-	client := resty.New().SetBaseURL(fmt.Sprintf("http://%s", address))
-	return &AccrualPoller{client: client, orderService: orderService, transactionService: transactionService, logger: logger}
+func NewAccrualPoller(
+	cfg *config.Config,
+	logger *zap.Logger,
+	orderService *service.OrderService,
+	transactionService *service.TransactionService,
+) *AccrualPoller {
+	client := resty.New().SetBaseURL(fmt.Sprintf("http://%s", cfg.AccrualSystemAddr))
+	return &AccrualPoller{client: client, cfg: cfg, orderService: orderService, transactionService: transactionService, logger: logger}
 }
 
 func (p *AccrualPoller) Run(ctx context.Context) {
-	ticker := time.NewTicker(pollInterval)
+	ticker := time.NewTicker(time.Duration(p.cfg.AccrualPollInterval) * time.Second)
 	defer ticker.Stop()
 
 	p.logger.Info("Started AccrualPoller", zap.String("address", p.client.BaseURL))

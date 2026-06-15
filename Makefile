@@ -7,12 +7,6 @@ build:
 docker-build:
 	docker compose build
 
-run:
-	docker compose up
-
-stop:
-	docker compose stop
-
 run-dev:
 	go run ./cmd/gophermart/main.go
 
