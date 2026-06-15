@@ -57,7 +57,7 @@ func (s *Server) Run() error {
 	transactionService := service.NewTransactionService(uow)
 	handler := handlers.NewHandler(s.Config, logger, userService, orderService, transactionService)
 
-	poller := accrual_poller.NewAccrualPoller(s.Config.AccrualSystemAddr, uow, logger)
+	poller := accrual_poller.NewAccrualPoller(s.Config.AccrualSystemAddr, orderService, transactionService, logger)
 	go poller.Run(ctx)
 
 	srv := &http.Server{

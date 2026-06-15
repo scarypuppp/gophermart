@@ -85,31 +85,31 @@ func (mr *MockOrderRepositoryMockRecorder) GetOrdersByUserId(ctx, userId any) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrdersByUserId", reflect.TypeOf((*MockOrderRepository)(nil).GetOrdersByUserId), ctx, userId)
 }
 
-// GetOrdersToPoll mocks base method.
-func (m *MockOrderRepository) GetOrdersToPoll(ctx context.Context) ([]entities.Order, error) {
+// GetUnprocessedOrders mocks base method.
+func (m *MockOrderRepository) GetUnprocessedOrders(ctx context.Context) ([]entities.Order, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOrdersToPoll", ctx)
+	ret := m.ctrl.Call(m, "GetUnprocessedOrders", ctx)
 	ret0, _ := ret[0].([]entities.Order)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetOrdersToPoll indicates an expected call of GetOrdersToPoll.
-func (mr *MockOrderRepositoryMockRecorder) GetOrdersToPoll(ctx any) *gomock.Call {
+// GetUnprocessedOrders indicates an expected call of GetUnprocessedOrders.
+func (mr *MockOrderRepositoryMockRecorder) GetUnprocessedOrders(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrdersToPoll", reflect.TypeOf((*MockOrderRepository)(nil).GetOrdersToPoll), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnprocessedOrders", reflect.TypeOf((*MockOrderRepository)(nil).GetUnprocessedOrders), ctx)
 }
 
-// UpdateOrders mocks base method.
-func (m *MockOrderRepository) UpdateOrders(ctx context.Context, orders []entities.Order) error {
+// UpdateOrder mocks base method.
+func (m *MockOrderRepository) UpdateOrder(ctx context.Context, order entities.Order) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateOrders", ctx, orders)
+	ret := m.ctrl.Call(m, "UpdateOrder", ctx, order)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateOrders indicates an expected call of UpdateOrders.
-func (mr *MockOrderRepositoryMockRecorder) UpdateOrders(ctx, orders any) *gomock.Call {
+// UpdateOrder indicates an expected call of UpdateOrder.
+func (mr *MockOrderRepositoryMockRecorder) UpdateOrder(ctx, order any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateOrders", reflect.TypeOf((*MockOrderRepository)(nil).UpdateOrders), ctx, orders)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateOrder", reflect.TypeOf((*MockOrderRepository)(nil).UpdateOrder), ctx, order)
 }

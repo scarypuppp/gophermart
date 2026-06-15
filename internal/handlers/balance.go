@@ -91,7 +91,7 @@ func (h *Handler) CreateWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.transactionService.Withdraw(r.Context(), userID, req.Order, req.Sum)
+	err := h.transactionService.CreateWithdraw(r.Context(), userID, req.Order, req.Sum)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrInvalidOrderNumber):

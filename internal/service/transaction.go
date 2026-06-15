@@ -27,7 +27,7 @@ func (s *TransactionService) GetBalance(ctx context.Context, userID int64) (enti
 	return balance, nil
 }
 
-func (s *TransactionService) Withdraw(ctx context.Context, userID int64, orderNumber string, amount float64) error {
+func (s *TransactionService) CreateWithdraw(ctx context.Context, userID int64, orderNumber string, amount float64) error {
 	if ok := entities.ValidateOrderNumber(orderNumber); !ok {
 		return ErrInvalidOrderNumber
 	}
@@ -54,6 +54,32 @@ func (s *TransactionService) Withdraw(ctx context.Context, userID int64, orderNu
 	})
 	if err != nil {
 		return fmt.Errorf("Withdraw: CreateTransaction: %w", err)
+	}
+
+	return tx.Commit(ctx)
+}
+
+func (s *TransactionService) CreateAccrual(ctx context.Context, order entities.Order) error {
+	tx, err := s.uow.BeginTx(ctx)
+	if err != nil {
+		return fmt.Errorf("CreateAccrual: BeginTx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if err := tx.Orders().UpdateOrder(ctx, order); err != nil {
+		return fmt.Errorf("CreateAccrual: UpdateOrder: %w", err)
+	}
+
+	if order.Status == entities.StatusProcessed && order.Accrual != nil {
+		_, err = tx.Transactions().CreateTransaction(ctx, entities.Transaction{
+			UserID:      order.UserID,
+			Amount:      *order.Accrual,
+			Type:        entities.TransactionTypeAccrual,
+			OrderNumber: order.Number,
+		})
+		if err != nil {
+			return fmt.Errorf("CreateAccrual: CreateTransaction: %w", err)
+		}
 	}
 
 	return tx.Commit(ctx)

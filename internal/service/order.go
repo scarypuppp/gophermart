@@ -70,3 +70,11 @@ func (s *OrderService) GetOrders(ctx context.Context, userId int64) ([]entities.
 	}
 	return orders, nil
 }
+
+func (s *OrderService) GetOrdersToPoll(ctx context.Context) ([]entities.Order, error) {
+	orders, err := s.uow.Orders().GetUnprocessedOrders(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("GetOrdersToPoll: %w", err)
+	}
+	return orders, nil
+}

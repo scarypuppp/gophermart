@@ -8,21 +8,22 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/scarypuppp/gophermart/internal/entities"
-	"github.com/scarypuppp/gophermart/internal/repository"
+	"github.com/scarypuppp/gophermart/internal/service"
 	"go.uber.org/zap"
 )
 
 const pollInterval = 2 * time.Second
 
 type AccrualPoller struct {
-	client *resty.Client
-	uow    repository.UnitOfWork
-	logger *zap.Logger
+	client             *resty.Client
+	orderService       *service.OrderService
+	transactionService *service.TransactionService
+	logger             *zap.Logger
 }
 
-func NewAccrualPoller(address string, uow repository.UnitOfWork, logger *zap.Logger) *AccrualPoller {
+func NewAccrualPoller(address string, orderService *service.OrderService, transactionService *service.TransactionService, logger *zap.Logger) *AccrualPoller {
 	client := resty.New().SetBaseURL(fmt.Sprintf("http://%s", address))
-	return &AccrualPoller{client: client, uow: uow, logger: logger}
+	return &AccrualPoller{client: client, orderService: orderService, transactionService: transactionService, logger: logger}
 }
 
 func (p *AccrualPoller) Run(ctx context.Context) {
@@ -43,7 +44,7 @@ func (p *AccrualPoller) Run(ctx context.Context) {
 }
 
 func (p *AccrualPoller) poll(ctx context.Context) error {
-	orders, err := p.uow.Orders().GetOrdersToPoll(ctx)
+	orders, err := p.orderService.GetOrdersToPoll(ctx)
 	if err != nil {
 		return fmt.Errorf("GetOrdersToPoll: %w", err)
 	}
@@ -75,37 +76,11 @@ func (p *AccrualPoller) poll(ctx context.Context) error {
 		if updated == nil {
 			continue
 		}
-		if err := p.applyUpdate(ctx, *updated); err != nil {
+		if err := p.transactionService.CreateAccrual(ctx, order); err != nil {
 			p.logger.Error("applyUpdate failed", zap.String("order", order.Number), zap.Error(err))
 		}
 	}
 	return nil
-}
-
-func (p *AccrualPoller) applyUpdate(ctx context.Context, order entities.Order) error {
-	tx, err := p.uow.BeginTx(ctx)
-	if err != nil {
-		return fmt.Errorf("BeginTx: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	if err := tx.Orders().UpdateOrders(ctx, []entities.Order{order}); err != nil {
-		return fmt.Errorf("UpdateOrders: %w", err)
-	}
-
-	if order.Status == entities.StatusProcessed && order.Accrual != nil {
-		_, err = tx.Transactions().CreateTransaction(ctx, entities.Transaction{
-			UserID:      order.UserID,
-			Amount:      *order.Accrual,
-			Type:        entities.TransactionTypeAccrual,
-			OrderNumber: order.Number,
-		})
-		if err != nil {
-			return fmt.Errorf("CreateTransaction: %w", err)
-		}
-	}
-
-	return tx.Commit(ctx)
 }
 
 func mapStatus(order entities.Order, resp *AccrualResponse) *entities.Order {

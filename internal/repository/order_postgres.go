@@ -58,23 +58,22 @@ func (r *OrderRepositoryPostgres) GetOrdersByUserId(ctx context.Context, userId 
 	return orders, nil
 }
 
-func (r *OrderRepositoryPostgres) GetOrdersToPoll(ctx context.Context) ([]entities.Order, error) {
+func (r *OrderRepositoryPostgres) GetUnprocessedOrders(ctx context.Context) ([]entities.Order, error) {
 	var orders []entities.Order
 	err := sqlx.SelectContext(ctx, r.exec, &orders,
 		`SELECT number, status, accrual, user_id, uploaded_at FROM orders WHERE status IN ('NEW', 'PROCESSING') ORDER BY uploaded_at`,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("GetOrdersToPoll: %w", err)
+		return nil, fmt.Errorf("GetUnprocessedOrders: %w", err)
 	}
 	return orders, nil
 }
 
-func (r *OrderRepositoryPostgres) UpdateOrders(ctx context.Context, orders []entities.Order) error {
-	query := `UPDATE orders SET status = :status, accrual = :accrual WHERE number = :number`
-	for _, order := range orders {
-		if _, err := sqlx.NamedExecContext(ctx, r.exec, query, order); err != nil {
-			return fmt.Errorf("UpdateOrders: %w", err)
-		}
+func (r *OrderRepositoryPostgres) UpdateOrder(ctx context.Context, order entities.Order) error {
+	_, err := sqlx.NamedExecContext(ctx, r.exec,
+		`UPDATE orders SET status = :status, accrual = :accrual WHERE number = :number`, order)
+	if err != nil {
+		return fmt.Errorf("UpdateOrder: %w", err)
 	}
 	return nil
 }

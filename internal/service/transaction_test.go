@@ -12,6 +12,8 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+func ptr(f float64) *float64 { return &f }
+
 func setupTransactionMocks(t *testing.T) (
 	*gomock.Controller,
 	*mocks.MockUnitOfWork,
@@ -77,13 +79,14 @@ func TestWithdraw(t *testing.T) {
 			CreateTransaction(ctx, entities.Transaction{
 				UserID:      1,
 				Amount:      -500,
+				Type:        entities.TransactionTypeWithdrawal,
 				OrderNumber: validOrder,
 			}).
-			Return(entities.Transaction{ID: 1, UserID: 1, Amount: -500, OrderNumber: validOrder}, nil)
+			Return(entities.Transaction{ID: 1, UserID: 1, Amount: -500, Type: entities.TransactionTypeWithdrawal, OrderNumber: validOrder}, nil)
 		uowTxMock.EXPECT().Commit(ctx).Return(nil)
 
 		s := NewTransactionService(uowMock)
-		err := s.Withdraw(ctx, 1, validOrder, 500)
+		err := s.CreateWithdraw(ctx, 1, validOrder, 500)
 
 		assert.NoError(t, err)
 	})
@@ -92,7 +95,7 @@ func TestWithdraw(t *testing.T) {
 		_, uowMock, _, _ := setupTransactionMocks(t)
 
 		s := NewTransactionService(uowMock)
-		err := s.Withdraw(ctx, 1, "123", 500)
+		err := s.CreateWithdraw(ctx, 1, "123", 500)
 
 		assert.ErrorIs(t, err, ErrInvalidOrderNumber)
 	})
@@ -108,7 +111,7 @@ func TestWithdraw(t *testing.T) {
 			Return(entities.Balance{Current: 100, Withdrawn: 0}, nil)
 
 		s := NewTransactionService(uowMock)
-		err := s.Withdraw(ctx, 1, validOrder, 500)
+		err := s.CreateWithdraw(ctx, 1, validOrder, 500)
 
 		assert.ErrorIs(t, err, ErrInsufficientBalance)
 	})
@@ -128,7 +131,108 @@ func TestWithdraw(t *testing.T) {
 			Return(entities.Transaction{}, repoErr)
 
 		s := NewTransactionService(uowMock)
-		err := s.Withdraw(ctx, 1, validOrder, 500)
+		err := s.CreateWithdraw(ctx, 1, validOrder, 500)
+
+		assert.Error(t, err)
+	})
+}
+
+func TestCreateAccrual(t *testing.T) {
+	ctx := context.Background()
+	const orderNum = "12345678903"
+
+	t.Run("processed with accrual creates transaction", func(t *testing.T) {
+		_, uowMock, uowTxMock, txRepoMock := setupTransactionMocks(t)
+		ctrl := gomock.NewController(t)
+		orderRepoMock := mocks.NewMockOrderRepository(ctrl)
+
+		order := entities.Order{
+			Number:  orderNum,
+			UserID:  1,
+			Status:  entities.StatusProcessed,
+			Accrual: ptr(300),
+		}
+
+		uowMock.EXPECT().BeginTx(ctx).Return(uowTxMock, nil)
+		uowTxMock.EXPECT().Rollback(ctx).Return(nil)
+		uowTxMock.EXPECT().Orders().Return(orderRepoMock)
+		orderRepoMock.EXPECT().UpdateOrder(ctx, order).Return(nil)
+		uowTxMock.EXPECT().Transactions().Return(txRepoMock)
+		txRepoMock.EXPECT().
+			CreateTransaction(ctx, entities.Transaction{
+				UserID:      1,
+				Amount:      300,
+				Type:        entities.TransactionTypeAccrual,
+				OrderNumber: orderNum,
+			}).
+			Return(entities.Transaction{ID: 1}, nil)
+		uowTxMock.EXPECT().Commit(ctx).Return(nil)
+
+		s := NewTransactionService(uowMock)
+		err := s.CreateAccrual(ctx, order)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("non-processed order skips transaction", func(t *testing.T) {
+		_, uowMock, uowTxMock, _ := setupTransactionMocks(t)
+		ctrl := gomock.NewController(t)
+		orderRepoMock := mocks.NewMockOrderRepository(ctrl)
+
+		order := entities.Order{
+			Number: orderNum,
+			UserID: 1,
+			Status: entities.StatusProcessing,
+		}
+
+		uowMock.EXPECT().BeginTx(ctx).Return(uowTxMock, nil)
+		uowTxMock.EXPECT().Rollback(ctx).Return(nil)
+		uowTxMock.EXPECT().Orders().Return(orderRepoMock)
+		orderRepoMock.EXPECT().UpdateOrder(ctx, order).Return(nil)
+		uowTxMock.EXPECT().Commit(ctx).Return(nil)
+
+		s := NewTransactionService(uowMock)
+		err := s.CreateAccrual(ctx, order)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("update orders error", func(t *testing.T) {
+		_, uowMock, uowTxMock, _ := setupTransactionMocks(t)
+		ctrl := gomock.NewController(t)
+		orderRepoMock := mocks.NewMockOrderRepository(ctrl)
+		repoErr := errors.New("db error")
+
+		order := entities.Order{Number: orderNum, UserID: 1, Status: entities.StatusProcessed, Accrual: ptr(100)}
+
+		uowMock.EXPECT().BeginTx(ctx).Return(uowTxMock, nil)
+		uowTxMock.EXPECT().Rollback(ctx).Return(nil)
+		uowTxMock.EXPECT().Orders().Return(orderRepoMock)
+		orderRepoMock.EXPECT().UpdateOrder(ctx, order).Return(repoErr)
+
+		s := NewTransactionService(uowMock)
+		err := s.CreateAccrual(ctx, order)
+
+		assert.Error(t, err)
+	})
+
+	t.Run("create transaction error", func(t *testing.T) {
+		_, uowMock, uowTxMock, txRepoMock := setupTransactionMocks(t)
+		ctrl := gomock.NewController(t)
+		orderRepoMock := mocks.NewMockOrderRepository(ctrl)
+		repoErr := errors.New("db error")
+
+		order := entities.Order{Number: orderNum, UserID: 1, Status: entities.StatusProcessed, Accrual: ptr(100)}
+
+		uowMock.EXPECT().BeginTx(ctx).Return(uowTxMock, nil)
+		uowTxMock.EXPECT().Rollback(ctx).Return(nil)
+		uowTxMock.EXPECT().Orders().Return(orderRepoMock)
+		orderRepoMock.EXPECT().UpdateOrder(ctx, order).Return(nil)
+		uowTxMock.EXPECT().Transactions().Return(txRepoMock)
+		txRepoMock.EXPECT().CreateTransaction(ctx, gomock.Any()).Return(entities.Transaction{}, repoErr)
+
+		s := NewTransactionService(uowMock)
+		err := s.CreateAccrual(ctx, order)
 
 		assert.Error(t, err)
 	})

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -102,6 +103,37 @@ func TestCreateOrder(t *testing.T) {
 		s := NewOrderService(uowMock)
 		_, _, err := s.GetOrCreateOrder(ctx, 1, "12345678903")
 		assert.ErrorIs(t, err, ErrOrderAssociatedWithOtherUser)
+	})
+}
+
+func TestGetOrdersToPoll(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("returns unprocessed orders", func(t *testing.T) {
+		_, uowMock, _, orderRepoMock := setupOrderMocks(t)
+		expected := []entities.Order{
+			{Number: "12345678903", Status: entities.StatusNew, UserID: 1},
+			{Number: "49927398716", Status: entities.StatusProcessing, UserID: 2},
+		}
+		uowMock.EXPECT().Orders().Return(orderRepoMock)
+		orderRepoMock.EXPECT().GetUnprocessedOrders(ctx).Return(expected, nil)
+
+		s := NewOrderService(uowMock)
+		orders, err := s.GetOrdersToPoll(ctx)
+
+		assert.NoError(t, err)
+		assert.Len(t, orders, 2)
+	})
+
+	t.Run("repo error", func(t *testing.T) {
+		_, uowMock, _, orderRepoMock := setupOrderMocks(t)
+		uowMock.EXPECT().Orders().Return(orderRepoMock)
+		orderRepoMock.EXPECT().GetUnprocessedOrders(ctx).Return(nil, errors.New("db error"))
+
+		s := NewOrderService(uowMock)
+		_, err := s.GetOrdersToPoll(ctx)
+
+		assert.Error(t, err)
 	})
 }
 
