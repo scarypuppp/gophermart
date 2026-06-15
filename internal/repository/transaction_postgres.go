@@ -22,8 +22,8 @@ func NewTransactionRepositoryPostgresTx(tx *sqlx.Tx) *TransactionRepositoryPostg
 
 func (r *TransactionRepositoryPostgres) CreateTransaction(ctx context.Context, tx entities.Transaction) (entities.Transaction, error) {
 	const query = `
-		INSERT INTO transactions (user_id, amount, order_num)
-		VALUES (:user_id, :amount, :order_num)
+		INSERT INTO transactions (user_id, type, amount, order_num)
+		VALUES (:user_id, :type, :amount, :order_num)
 		RETURNING id, created_at`
 	rows, err := sqlx.NamedQueryContext(ctx, r.exec, query, tx)
 	if err != nil {
@@ -45,7 +45,7 @@ func (r *TransactionRepositoryPostgres) GetBalance(ctx context.Context, userID i
 	}
 	const query = `
 		SELECT
-			COALESCE(SUM(amount) FILTER (WHERE amount > 0), 0)       AS current,
+			COALESCE(SUM(amount), 0)       AS current,
 			COALESCE(ABS(SUM(amount) FILTER (WHERE amount < 0)), 0)  AS withdrawn
 		FROM transactions
 		WHERE user_id = $1`

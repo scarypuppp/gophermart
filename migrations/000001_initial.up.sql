@@ -21,12 +21,10 @@ CREATE TABLE orders
 CREATE TABLE transactions (
     id         bigserial      PRIMARY KEY,
     user_id    bigint         NOT NULL,
+    type       VARCHAR        NOT NULL,
     amount     NUMERIC(15, 2) NOT NULL,
     order_num  VARCHAR        NOT NULL,
     created_at TIMESTAMP      NOT NULL DEFAULT now(),
     CONSTRAINT fk_transaction_users
-        FOREIGN KEY (user_id) REFERENCES users(id),
-    CONSTRAINT fk_transaction_orders
-        FOREIGN KEY (order_num) REFERENCES orders(number),
-    CONSTRAINT uq_transaction_order UNIQUE (order_num)
+        FOREIGN KEY (user_id) REFERENCES users(id)
 );

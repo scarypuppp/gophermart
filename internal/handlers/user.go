@@ -9,6 +9,7 @@ import (
 
 	"github.com/scarypuppp/gophermart/internal/auth"
 	"github.com/scarypuppp/gophermart/internal/service"
+	"go.uber.org/zap"
 )
 
 //
@@ -46,6 +47,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrLoginAlreadyExists):
 			http.Error(w, err.Error(), http.StatusConflict)
 		default:
+			h.logger.Error("Handler Register unhandled error", zap.Error(err))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 	}
@@ -89,6 +91,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrLoginPasswordNotExist):
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 		default:
+			h.logger.Error("Handler Login unhandled error", zap.Error(err))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return

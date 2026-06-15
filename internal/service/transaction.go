@@ -49,6 +49,7 @@ func (s *TransactionService) Withdraw(ctx context.Context, userID int64, orderNu
 	_, err = tx.Transactions().CreateTransaction(ctx, entities.Transaction{
 		UserID:      userID,
 		Amount:      -amount,
+		Type:        entities.TransactionTypeWithdrawal,
 		OrderNumber: orderNumber,
 	})
 	if err != nil {

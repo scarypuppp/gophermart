@@ -97,6 +97,7 @@ func (p *AccrualPoller) applyUpdate(ctx context.Context, order entities.Order) e
 		_, err = tx.Transactions().CreateTransaction(ctx, entities.Transaction{
 			UserID:      order.UserID,
 			Amount:      *order.Accrual,
+			Type:        entities.TransactionTypeAccrual,
 			OrderNumber: order.Number,
 		})
 		if err != nil {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/scarypuppp/gophermart/internal/middlewares"
 	"github.com/scarypuppp/gophermart/internal/service"
+	"go.uber.org/zap"
 )
 
 //
@@ -53,6 +54,7 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
 			return
 		default:
+			h.logger.Error("Handler CreateOrder unhandled error", zap.Error(err))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}

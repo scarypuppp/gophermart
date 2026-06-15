@@ -8,6 +8,7 @@ import (
 
 	"github.com/scarypuppp/gophermart/internal/middlewares"
 	"github.com/scarypuppp/gophermart/internal/service"
+	"go.uber.org/zap"
 )
 
 //
@@ -98,6 +99,7 @@ func (h *Handler) CreateWithdraw(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrInsufficientBalance):
 			http.Error(w, http.StatusText(http.StatusPaymentRequired), http.StatusPaymentRequired)
 		default:
+			h.logger.Error("Handler CreateWithdraw unhandled error", zap.Error(err))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
