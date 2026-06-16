@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/caarlos0/env/v6"
 )
@@ -22,37 +23,65 @@ type Config struct {
 }
 
 func GetConfig() (*Config, error) {
-	var config Config
-	if err := env.Parse(&config); err != nil {
+	return parseConfig(os.Args[1:])
+}
+
+func parseConfig(args []string) (*Config, error) {
+	var cfg Config
+	if err := env.Parse(&cfg); err != nil {
 		return nil, err
 	}
 
-	secretKeyFlag := flag.String("k", "", "application secret key")
-	addrFlag := flag.String("a", "", "server address host:port")
-	databaseUriFlag := flag.String("d", "", "database dsn string")
-	accrualSystemAddrFlag := flag.String("r", "", "accrual system host:port")
-	accrualPollIntervalFlag := flag.Int64("r", 0, "accrual system poll interval in seconds")
-	tokenExpSecondsFlag := flag.Int64("e", 0, "jwt token expires in seconds")
-	flag.Parse()
+	fs := flag.NewFlagSet("gophermart", flag.ContinueOnError)
+	secretKeyFlag := fs.String("k", "", "application secret key")
+	addrFlag := fs.String("a", "", "server address host:port")
+	databaseURIFlag := fs.String("d", "", "database dsn string")
+	accrualAddrFlag := fs.String("r", "", "accrual system host:port")
+	accrualIntervalFlag := fs.Int64("i", 0, "accrual system poll interval in seconds")
+	tokenExpFlag := fs.Int64("e", 0, "jwt token expires in seconds")
 
-	if config.SecretKey == "" && *secretKeyFlag == "" {
-		return nil, fmt.Errorf("secret key should not be empty")
-	}
-	if config.Address == "" && *addrFlag == "" {
-		return nil, fmt.Errorf("service address should not be empty")
-	}
-	if config.DatabaseURI == "" && *databaseUriFlag == "" {
-		return nil, fmt.Errorf("database uri should not be empty")
-	}
-	if config.AccrualSystemAddr == "" && *accrualSystemAddrFlag == "" {
-		return nil, fmt.Errorf("accrual system address should not be empty")
-	}
-	if config.AccrualPollInterval == 0 && *accrualPollIntervalFlag == 0 {
-		config.TokenExpSeconds = defaultAccrualPollInterval
-	}
-	if config.TokenExpSeconds == 0 && *tokenExpSecondsFlag == 0 {
-		config.TokenExpSeconds = defaultTokenExpiresSeconds
+	if err := fs.Parse(args); err != nil {
+		return nil, err
 	}
 
-	return &config, nil
+	if cfg.SecretKey == "" {
+		if *secretKeyFlag == "" {
+			return nil, fmt.Errorf("secret key should not be empty")
+		}
+		cfg.SecretKey = *secretKeyFlag
+	}
+	if cfg.Address == "" {
+		if *addrFlag == "" {
+			return nil, fmt.Errorf("service address should not be empty")
+		}
+		cfg.Address = *addrFlag
+	}
+	if cfg.DatabaseURI == "" {
+		if *databaseURIFlag == "" {
+			return nil, fmt.Errorf("database uri should not be empty")
+		}
+		cfg.DatabaseURI = *databaseURIFlag
+	}
+	if cfg.AccrualSystemAddr == "" {
+		if *accrualAddrFlag == "" {
+			return nil, fmt.Errorf("accrual system address should not be empty")
+		}
+		cfg.AccrualSystemAddr = *accrualAddrFlag
+	}
+	if cfg.AccrualPollInterval == 0 {
+		if *accrualIntervalFlag != 0 {
+			cfg.AccrualPollInterval = int(*accrualIntervalFlag)
+		} else {
+			cfg.AccrualPollInterval = defaultAccrualPollInterval
+		}
+	}
+	if cfg.TokenExpSeconds == 0 {
+		if *tokenExpFlag != 0 {
+			cfg.TokenExpSeconds = *tokenExpFlag
+		} else {
+			cfg.TokenExpSeconds = defaultTokenExpiresSeconds
+		}
+	}
+
+	return &cfg, nil
 }
