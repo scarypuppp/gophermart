@@ -41,7 +41,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	_, err = h.userService.RegisterUser(context.Background(), requestData.Login, requestData.Password)
+	user, err := h.userService.RegisterUser(context.Background(), requestData.Login, requestData.Password)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrLoginAlreadyExists):
@@ -50,7 +50,14 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 			h.logger.Error("Handler Register unhandled error", zap.Error(err))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
+		return
 	}
+	token, err := auth.CreateToken(h.config.SecretKey, user.ID, h.config.TokenExpSeconds)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Authorization", "Bearer "+token)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -106,6 +113,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Authorization", "Bearer "+token)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write(response)
