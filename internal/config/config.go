@@ -11,6 +11,7 @@ import (
 const (
 	defaultTokenExpiresSeconds = 24 * 60 * 60 * 30 // 30 days
 	defaultAccrualPollInterval = 2
+	defaultSecretKey           = "default-secret-key"
 )
 
 type Config struct {
@@ -45,10 +46,11 @@ func parseConfig(args []string) (*Config, error) {
 	}
 
 	if cfg.SecretKey == "" {
-		if *secretKeyFlag == "" {
-			return nil, fmt.Errorf("secret key should not be empty")
+		if *secretKeyFlag != "" {
+			cfg.SecretKey = *secretKeyFlag
+		} else {
+			cfg.SecretKey = defaultSecretKey
 		}
-		cfg.SecretKey = *secretKeyFlag
 	}
 	if cfg.Address == "" {
 		if *addrFlag == "" {
