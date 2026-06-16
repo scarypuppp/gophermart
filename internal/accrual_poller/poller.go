@@ -43,7 +43,7 @@ func NewAccrualPoller(
 	transactionService ITransactionService,
 	workerCount int,
 ) *AccrualPoller {
-	client := resty.New().SetBaseURL(fmt.Sprintf("http://%s", cfg.AccrualSystemAddr))
+	client := resty.New().SetBaseURL(cfg.AccrualSystemAddr)
 	return &AccrualPoller{
 		client:             client,
 		cfg:                cfg,
