@@ -2,15 +2,21 @@ package entities
 
 import "time"
 
+// OrderStatus тип статуса заказа в системе лояльности.
 type OrderStatus string
 
 const (
-	StatusNew        OrderStatus = "NEW"
+	// StatusNew заказ загружен, но ещё не передан в accrual систему.
+	StatusNew OrderStatus = "NEW"
+	// StatusProcessing заказ находится в обработке accrual системой.
 	StatusProcessing OrderStatus = "PROCESSING"
-	StatusInvalid    OrderStatus = "INVALID"
-	StatusProcessed  OrderStatus = "PROCESSED"
+	// StatusInvalid заказ не принят accrual системой — начисление не будет произведено.
+	StatusInvalid OrderStatus = "INVALID"
+	// StatusProcessed начисление по заказу успешно рассчитано.
+	StatusProcessed OrderStatus = "PROCESSED"
 )
 
+// Order представляет заказ пользователя, по которому отслеживается начисление баллов.
 type Order struct {
 	Number     string      `db:"number"`
 	Status     OrderStatus `db:"status"`
@@ -19,6 +25,8 @@ type Order struct {
 	UploadedAt time.Time   `db:"uploaded_at"`
 }
 
+// ValidateOrderNumber проверяет номер заказа по алгоритму Луна.
+// Возвращает true, если номер корректен.
 func ValidateOrderNumber(number string) bool {
 	if len(number) == 0 {
 		return false

@@ -10,8 +10,12 @@ import (
 
 type contextKey string
 
+// UserIDKey ключ контекста, по которому middleware Auth сохраняет идентификатор пользователя.
 const UserIDKey contextKey = "userID"
 
+// Auth middleware проверяет наличие валидного Bearer-токена в заголовке Authorization.
+// При успешной проверке записывает UserID в context под ключом UserIDKey.
+// Возвращает HTTP 401, если токен отсутствует, имеет неверный формат или невалиден.
 func (m *Middleware) Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")

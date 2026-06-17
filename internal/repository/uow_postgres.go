@@ -6,6 +6,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// UnitOfWorkPostgres реализует UnitOfWork поверх PostgreSQL.
+// Может работать как без транзакции (db), так и внутри открытой транзакции (tx).
 type UnitOfWorkPostgres struct {
 	db           *sqlx.DB
 	tx           *sqlx.Tx
@@ -14,6 +16,7 @@ type UnitOfWorkPostgres struct {
 	transactions *TransactionRepositoryPostgres
 }
 
+// NewUnitOfWorkPostgres создаёт UnitOfWorkPostgres с подключением к базе данных.
 func NewUnitOfWorkPostgres(db *sqlx.DB) *UnitOfWorkPostgres {
 	return &UnitOfWorkPostgres{
 		db:           db,

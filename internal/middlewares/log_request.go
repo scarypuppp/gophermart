@@ -7,6 +7,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// LogRequest middleware логирует метод, URI и длительность каждого входящего запроса.
+// Если в context присутствует UserID, он также включается в лог.
 func (m *Middleware) LogRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

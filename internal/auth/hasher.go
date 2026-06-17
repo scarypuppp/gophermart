@@ -2,7 +2,7 @@ package auth
 
 import "golang.org/x/crypto/bcrypt"
 
-// HashPassword Функция для генерации хэша от пароля
+// HashPassword возвращает bcrypt-хэш переданного пароля.
 func HashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -11,7 +11,8 @@ func HashPassword(password string) (string, error) {
 	return string(hash), nil
 }
 
-// CheckPassword Функция для проверки корректности введенного пароля
+// CheckPassword проверяет, соответствует ли password переданному bcrypt-хэшу.
+// Возвращает nil при совпадении и ошибку в противном случае.
 func CheckPassword(password string, hash string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 }

@@ -28,6 +28,8 @@ func (response *loggingResponseWriter) WriteHeader(statusCode int) {
 	response.responseData.status = statusCode
 }
 
+// LogResponse middleware логирует HTTP-статус и размер тела каждого ответа.
+// Если в context присутствует UserID, он также включается в лог.
 func (m *Middleware) LogResponse(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		responseData := &responseData{}

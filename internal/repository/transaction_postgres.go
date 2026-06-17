@@ -8,14 +8,17 @@ import (
 	"github.com/scarypuppp/gophermart/internal/entities"
 )
 
+// TransactionRepositoryPostgres реализует TransactionRepository поверх PostgreSQL.
 type TransactionRepositoryPostgres struct {
 	exec sqlx.ExtContext
 }
 
+// NewTransactionRepositoryPostgres создаёт TransactionRepositoryPostgres, работающий без транзакции.
 func NewTransactionRepositoryPostgres(db *sqlx.DB) *TransactionRepositoryPostgres {
 	return &TransactionRepositoryPostgres{exec: db}
 }
 
+// NewTransactionRepositoryPostgresTx создаёт TransactionRepositoryPostgres, работающий внутри транзакции.
 func NewTransactionRepositoryPostgresTx(tx *sqlx.Tx) *TransactionRepositoryPostgres {
 	return &TransactionRepositoryPostgres{exec: tx}
 }

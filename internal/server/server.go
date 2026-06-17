@@ -24,14 +24,19 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
+// Server хранит конфигурацию приложения и является точкой входа для запуска всех компонентов.
 type Server struct {
 	Config *config.Config
 }
 
+// NewServer создаёт новый Server с переданной конфигурацией.
 func NewServer(config *config.Config) *Server {
 	return &Server{config}
 }
 
+// Run инициализирует зависимости, запускает HTTP-сервер и AccrualPoller.
+// Блокирует выполнение до получения сигнала завершения (SIGINT/SIGTERM),
+// после чего выполняет graceful shutdown с таймаутом 5 секунд.
 func (s *Server) Run() error {
 	logger, err := zap.NewProduction()
 	if err != nil {

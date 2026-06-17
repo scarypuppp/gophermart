@@ -10,26 +10,25 @@ import (
 	"github.com/scarypuppp/gophermart/internal/repository"
 )
 
-//
-//	ERRORS
-//
-
+// ErrLoginAlreadyExists возвращается при попытке зарегистрировать уже занятый login.
 var ErrLoginAlreadyExists = errors.New("user with such login already exists")
+
+// ErrLoginPasswordNotExist возвращается, если пользователь с указанными login и password не найден.
 var ErrLoginPasswordNotExist = errors.New("user with such login and password does not exist")
 
-//
-//	SERVICE
-//
-
+// UserService реализует бизнес-логику регистрации и аутентификации пользователей.
 type UserService struct {
 	uow repository.UnitOfWork
 }
 
+// NewUserService создаёт новый UserService с переданным UnitOfWork.
 func NewUserService(uow repository.UnitOfWork) *UserService {
 	return &UserService{uow}
 }
 
-// RegisterUser создает пользователя по логину и паролю.
+// RegisterUser создаёт нового пользователя с указанными login и password.
+// Валидирует длину login и password, проверяет уникальность login.
+// Возвращает ErrLoginAlreadyExists, если login уже занят.
 func (us *UserService) RegisterUser(
 	ctx context.Context,
 	login string,
@@ -74,7 +73,8 @@ func (us *UserService) RegisterUser(
 	return user, nil
 }
 
-// LoginUser проверяет, существует ли такой пользователь по предоставленным логину и паролю
+// LoginUser проверяет login и password, возвращает User при успешной аутентификации.
+// Возвращает ErrLoginPasswordNotExist, если пользователь не найден или пароль неверен.
 func (us *UserService) LoginUser(
 	ctx context.Context,
 	login string,

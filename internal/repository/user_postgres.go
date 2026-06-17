@@ -10,14 +10,17 @@ import (
 	"github.com/scarypuppp/gophermart/internal/entities"
 )
 
+// UserRepositoryPostgres реализует UserRepository поверх PostgreSQL.
 type UserRepositoryPostgres struct {
 	exec sqlx.ExtContext
 }
 
+// NewUserRepositoryPostgres создаёт UserRepositoryPostgres, работающий без транзакции.
 func NewUserRepositoryPostgres(db *sqlx.DB) *UserRepositoryPostgres {
 	return &UserRepositoryPostgres{exec: db}
 }
 
+// NewUserRepositoryPostgresTx создаёт UserRepositoryPostgres, работающий внутри транзакции.
 func NewUserRepositoryPostgresTx(tx *sqlx.Tx) *UserRepositoryPostgres {
 	return &UserRepositoryPostgres{exec: tx}
 }

@@ -9,16 +9,20 @@ import (
 	"github.com/scarypuppp/gophermart/internal/repository"
 )
 
+// ErrInsufficientBalance возвращается при попытке списания суммы, превышающей текущий баланс.
 var ErrInsufficientBalance = errors.New("insufficient balance")
 
+// TransactionService реализует бизнес-логику операций с балансом пользователя.
 type TransactionService struct {
 	uow repository.UnitOfWork
 }
 
+// NewTransactionService создаёт новый TransactionService с переданным UnitOfWork.
 func NewTransactionService(uow repository.UnitOfWork) *TransactionService {
 	return &TransactionService{uow}
 }
 
+// GetBalance возвращает текущий баланс и суммарную сумму списаний для пользователя.
 func (s *TransactionService) GetBalance(ctx context.Context, userID int64) (entities.Balance, error) {
 	balance, err := s.uow.Transactions().GetBalance(ctx, userID)
 	if err != nil {
@@ -27,6 +31,9 @@ func (s *TransactionService) GetBalance(ctx context.Context, userID int64) (enti
 	return balance, nil
 }
 
+// CreateWithdraw списывает amount баллов с баланса пользователя в счёт оплаты заказа.
+// Возвращает ErrInvalidOrderNumber при некорректном номере заказа и ErrInsufficientBalance,
+// если баланс не покрывает запрошенную сумму.
 func (s *TransactionService) CreateWithdraw(ctx context.Context, userID int64, orderNumber string, amount float64) error {
 	if ok := entities.ValidateOrderNumber(orderNumber); !ok {
 		return ErrInvalidOrderNumber
@@ -59,6 +66,7 @@ func (s *TransactionService) CreateWithdraw(ctx context.Context, userID int64, o
 	return tx.Commit(ctx)
 }
 
+// CreateAccrual обновляет статус заказа и, если он перешёл в PROCESSED, начисляет баллы на баланс пользователя.
 func (s *TransactionService) CreateAccrual(ctx context.Context, order entities.Order) error {
 	tx, err := s.uow.BeginTx(ctx)
 	if err != nil {
@@ -85,6 +93,7 @@ func (s *TransactionService) CreateAccrual(ctx context.Context, order entities.O
 	return tx.Commit(ctx)
 }
 
+// GetWithdrawals возвращает историю списаний пользователя, отсортированную по дате.
 func (s *TransactionService) GetWithdrawals(ctx context.Context, userID int64) ([]entities.Withdrawal, error) {
 	withdrawals, err := s.uow.Transactions().GetWithdrawals(ctx, userID)
 	if err != nil {

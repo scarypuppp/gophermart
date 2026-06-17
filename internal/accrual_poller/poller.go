@@ -13,20 +13,26 @@ import (
 	"go.uber.org/zap"
 )
 
+// IOrderService интерфейс для получения заказов, ожидающих обработки в accrual системе.
 type IOrderService interface {
 	GetOrdersToPoll(ctx context.Context) ([]entities.Order, error)
 }
 
+// ITransactionService интерфейс для сохранения результата начисления баллов по заказу.
 type ITransactionService interface {
 	CreateAccrual(ctx context.Context, order entities.Order) error
 }
 
+// accrualResult внутренняя структура для передачи результата от worker'а в основной цикл poll.
+// Поля взаимоисключающи: задан ровно один из updated, retryAfter или err.
 type accrualResult struct {
 	updated    *entities.Order
 	retryAfter time.Duration
 	err        error
 }
 
+// AccrualPoller периодически опрашивает accrual систему для обновления статусов заказов.
+// Обработка заказов выполняется параллельно через пул worker'ов.
 type AccrualPoller struct {
 	client             *resty.Client
 	cfg                *config.Config
@@ -36,6 +42,7 @@ type AccrualPoller struct {
 	workerCount        int
 }
 
+// NewAccrualPoller создаёт новый AccrualPoller и инициализирует HTTP-клиент с базовым URL accrual системы.
 func NewAccrualPoller(
 	cfg *config.Config,
 	logger *zap.Logger,
@@ -54,6 +61,8 @@ func NewAccrualPoller(
 	}
 }
 
+// Run запускает цикл опроса accrual системы с интервалом из конфигурации.
+// Блокирует выполнение до отмены ctx.
 func (p *AccrualPoller) Run(ctx context.Context) {
 	ticker := time.NewTicker(time.Duration(p.cfg.AccrualPollInterval) * time.Second)
 	defer ticker.Stop()
@@ -71,6 +80,8 @@ func (p *AccrualPoller) Run(ctx context.Context) {
 	}
 }
 
+// accrualWorker читает заказы из jobsCh, запрашивает их статус в accrual системе
+// и отправляет результат в resultsCh. При получении rate limit останавливается и завершает работу.
 func (p *AccrualPoller) accrualWorker(ctx context.Context, id int, jobsCh <-chan entities.Order, resultsCh chan<- accrualResult) {
 	defer p.logger.Info("accrual worker done", zap.Int("id", id))
 	p.logger.Info("accrual worker started", zap.Int("id", id))
@@ -100,6 +111,9 @@ func (p *AccrualPoller) accrualWorker(ctx context.Context, id int, jobsCh <-chan
 	}
 }
 
+// poll выполняет один цикл опроса: загружает заказы, распределяет их по worker'ам
+// и применяет полученные обновления. При rate limit от accrual системы делает паузу
+// на указанное в заголовке Retry-After время.
 func (p *AccrualPoller) poll(ctx context.Context) error {
 	orders, err := p.orderService.GetOrdersToPoll(ctx)
 	if err != nil {
@@ -166,6 +180,8 @@ func (p *AccrualPoller) poll(ctx context.Context) error {
 	return nil
 }
 
+// mapStatus преобразует статус из ответа accrual системы в entities.OrderStatus
+// и возвращает обновлённый Order. Если статус и сумма начисления не изменились — возвращает nil.
 func mapStatus(order entities.Order, resp *AccrualResponse) *entities.Order {
 	var newStatus entities.OrderStatus
 	switch resp.Status {

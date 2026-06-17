@@ -10,14 +10,17 @@ import (
 	"github.com/scarypuppp/gophermart/internal/entities"
 )
 
+// OrderRepositoryPostgres реализует OrderRepository поверх PostgreSQL.
 type OrderRepositoryPostgres struct {
 	exec sqlx.ExtContext
 }
 
+// NewOrderRepositoryPostgres создаёт OrderRepositoryPostgres, работающий без транзакции.
 func NewOrderRepositoryPostgres(db *sqlx.DB) *OrderRepositoryPostgres {
 	return &OrderRepositoryPostgres{exec: db}
 }
 
+// NewOrderRepositoryPostgresTx создаёт OrderRepositoryPostgres, работающий внутри транзакции.
 func NewOrderRepositoryPostgresTx(tx *sqlx.Tx) *OrderRepositoryPostgres {
 	return &OrderRepositoryPostgres{exec: tx}
 }

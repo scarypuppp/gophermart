@@ -26,6 +26,7 @@ func TestParseConfig_FromEnv(t *testing.T) {
 }
 
 func TestParseConfig_FromFlags(t *testing.T) {
+	t.Setenv("SECRET_KEY", "")
 	cfg, err := parseConfig([]string{
 		"-k", "mykey",
 		"-a", "0.0.0.0:8080",
@@ -41,14 +42,6 @@ func TestParseConfig_FromFlags(t *testing.T) {
 	assert.Equal(t, "localhost:9090", cfg.AccrualSystemAddr)
 	assert.Equal(t, 5, cfg.AccrualPollInterval)
 	assert.Equal(t, int64(3600), cfg.TokenExpSeconds)
-}
-
-func TestParseConfig_MissingSecretKey(t *testing.T) {
-	t.Setenv("RUN_ADDRESS", "localhost:8080")
-	t.Setenv("DATABASE_URI", "postgres://localhost/db")
-	t.Setenv("ACCRUAL_SYSTEM_ADDRESS", "localhost:9090")
-	_, err := parseConfig(nil)
-	assert.ErrorContains(t, err, "secret key")
 }
 
 func TestParseConfig_MissingAddress(t *testing.T) {
@@ -76,9 +69,13 @@ func TestParseConfig_MissingAccrualAddr(t *testing.T) {
 }
 
 func TestParseConfig_Defaults(t *testing.T) {
-	fullEnv(t)
+	t.Setenv("SECRET_KEY", "")
+	t.Setenv("RUN_ADDRESS", "localhost:8080")
+	t.Setenv("DATABASE_URI", "postgres://localhost/db")
+	t.Setenv("ACCRUAL_SYSTEM_ADDRESS", "localhost:9090")
 	cfg, err := parseConfig(nil)
 	require.NoError(t, err)
 	assert.Equal(t, defaultAccrualPollInterval, cfg.AccrualPollInterval)
 	assert.Equal(t, int64(defaultTokenExpiresSeconds), cfg.TokenExpSeconds)
+	assert.Equal(t, defaultSecretKey, cfg.SecretKey)
 }
