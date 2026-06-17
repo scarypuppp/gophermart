@@ -27,8 +27,8 @@ func NewOrderRepositoryPostgresTx(tx *sqlx.Tx) *OrderRepositoryPostgres {
 
 func (r *OrderRepositoryPostgres) CreateOrder(ctx context.Context, order entities.Order) error {
 	const insertQuery = `
-    INSERT INTO orders (number, status, accrual, user_id, uploaded_at)
-    VALUES (:number, :status, :accrual, :user_id, :uploaded_at)`
+		INSERT INTO orders (number, status, accrual, user_id, uploaded_at)
+		VALUES (:number, :status, :accrual, :user_id, :uploaded_at)`
 	_, err := sqlx.NamedExecContext(ctx, r.exec, insertQuery, order)
 	if err != nil {
 		return fmt.Errorf("CreateOrder: %w", err)
@@ -37,10 +37,12 @@ func (r *OrderRepositoryPostgres) CreateOrder(ctx context.Context, order entitie
 }
 
 func (r *OrderRepositoryPostgres) GetOrderByNumber(ctx context.Context, number string) (*entities.Order, error) {
+	const selectQuery = `
+		SELECT number, status, accrual, user_id, uploaded_at
+		FROM orders WHERE number = $1
+		ORDER BY uploaded_at`
 	var order entities.Order
-	err := sqlx.GetContext(ctx, r.exec, &order,
-		`SELECT number, status, accrual, user_id, uploaded_at FROM orders WHERE number = $1`, number,
-	)
+	err := sqlx.GetContext(ctx, r.exec, &order, selectQuery, number)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNoRows
 	}
@@ -51,10 +53,12 @@ func (r *OrderRepositoryPostgres) GetOrderByNumber(ctx context.Context, number s
 }
 
 func (r *OrderRepositoryPostgres) GetOrdersByUserId(ctx context.Context, userId int64) ([]entities.Order, error) {
+	const selectQuery = `
+		SELECT number, status, accrual, user_id, uploaded_at
+		FROM orders WHERE user_id = $1
+		ORDER BY uploaded_at`
 	var orders []entities.Order
-	err := sqlx.SelectContext(ctx, r.exec, &orders,
-		`SELECT number, status, accrual, user_id, uploaded_at FROM orders WHERE user_id = $1`, userId,
-	)
+	err := sqlx.SelectContext(ctx, r.exec, &orders, selectQuery, userId)
 	if err != nil {
 		return nil, fmt.Errorf("GetOrdersByUserId: %w", err)
 	}
@@ -62,10 +66,13 @@ func (r *OrderRepositoryPostgres) GetOrdersByUserId(ctx context.Context, userId 
 }
 
 func (r *OrderRepositoryPostgres) GetUnprocessedOrders(ctx context.Context) ([]entities.Order, error) {
+	const selectQuery = `
+		SELECT number, status, accrual, user_id, uploaded_at
+		FROM orders
+		WHERE status IN ('NEW', 'PROCESSING')
+		ORDER BY uploaded_at`
 	var orders []entities.Order
-	err := sqlx.SelectContext(ctx, r.exec, &orders,
-		`SELECT number, status, accrual, user_id, uploaded_at FROM orders WHERE status IN ('NEW', 'PROCESSING') ORDER BY uploaded_at`,
-	)
+	err := sqlx.SelectContext(ctx, r.exec, &orders, selectQuery)
 	if err != nil {
 		return nil, fmt.Errorf("GetUnprocessedOrders: %w", err)
 	}

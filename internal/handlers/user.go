@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -41,7 +40,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user, err := h.userService.RegisterUser(context.Background(), requestData.Login, requestData.Password)
+	user, err := h.userService.RegisterUser(r.Context(), requestData.Login, requestData.Password)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrLoginAlreadyExists):
@@ -92,7 +91,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user, err := h.userService.LoginUser(context.Background(), requestData.Login, requestData.Password)
+	user, err := h.userService.LoginUser(r.Context(), requestData.Login, requestData.Password)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrLoginPasswordNotExist):

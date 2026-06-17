@@ -1,4 +1,4 @@
-package accrual_poller
+package accrualpoller
 
 import (
 	"encoding/json"
