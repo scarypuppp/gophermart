@@ -7,8 +7,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func emptyEnv(t *testing.T) {
+	t.Helper()
+	t.Setenv("SECRET_KEY", "")
+	t.Setenv("RUN_ADDRESS", "")
+	t.Setenv("DATABASE_URI", "")
+	t.Setenv("ACCRUAL_SYSTEM_ADDRESS", "")
+	t.Setenv("ACCRUAL_POLL_INTERVAL", "")
+	t.Setenv("TOKEN_EXP", "")
+}
+
 func fullEnv(t *testing.T) {
 	t.Helper()
+	emptyEnv(t)
 	t.Setenv("SECRET_KEY", "s")
 	t.Setenv("RUN_ADDRESS", "localhost:8080")
 	t.Setenv("DATABASE_URI", "postgres://localhost/db")
@@ -26,7 +37,7 @@ func TestParseConfig_FromEnv(t *testing.T) {
 }
 
 func TestParseConfig_FromFlags(t *testing.T) {
-	t.Setenv("SECRET_KEY", "")
+	emptyEnv(t)
 	cfg, err := parseConfig([]string{
 		"-k", "mykey",
 		"-a", "0.0.0.0:8080",
@@ -45,6 +56,7 @@ func TestParseConfig_FromFlags(t *testing.T) {
 }
 
 func TestParseConfig_MissingAddress(t *testing.T) {
+	emptyEnv(t)
 	t.Setenv("SECRET_KEY", "s")
 	t.Setenv("DATABASE_URI", "postgres://localhost/db")
 	t.Setenv("ACCRUAL_SYSTEM_ADDRESS", "localhost:9090")
@@ -53,6 +65,7 @@ func TestParseConfig_MissingAddress(t *testing.T) {
 }
 
 func TestParseConfig_MissingDatabaseURI(t *testing.T) {
+	emptyEnv(t)
 	t.Setenv("SECRET_KEY", "s")
 	t.Setenv("RUN_ADDRESS", "localhost:8080")
 	t.Setenv("ACCRUAL_SYSTEM_ADDRESS", "localhost:9090")
@@ -61,6 +74,7 @@ func TestParseConfig_MissingDatabaseURI(t *testing.T) {
 }
 
 func TestParseConfig_MissingAccrualAddr(t *testing.T) {
+	emptyEnv(t)
 	t.Setenv("SECRET_KEY", "s")
 	t.Setenv("RUN_ADDRESS", "localhost:8080")
 	t.Setenv("DATABASE_URI", "postgres://localhost/db")
@@ -69,7 +83,7 @@ func TestParseConfig_MissingAccrualAddr(t *testing.T) {
 }
 
 func TestParseConfig_Defaults(t *testing.T) {
-	t.Setenv("SECRET_KEY", "")
+	emptyEnv(t)
 	t.Setenv("RUN_ADDRESS", "localhost:8080")
 	t.Setenv("DATABASE_URI", "postgres://localhost/db")
 	t.Setenv("ACCRUAL_SYSTEM_ADDRESS", "localhost:9090")

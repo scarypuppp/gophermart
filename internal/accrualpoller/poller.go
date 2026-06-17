@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/scarypuppp/gophermart/internal/config"
 	"github.com/scarypuppp/gophermart/internal/entities"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 // IOrderService интерфейс для получения заказов, ожидающих обработки в accrual системе.
@@ -82,14 +82,14 @@ func (p *AccrualPoller) Run(ctx context.Context) {
 
 // accrualWorker читает заказы из jobsCh, запрашивает их статус в accrual системе
 // и отправляет результат в resultsCh. При получении rate limit останавливается и завершает работу.
-func (p *AccrualPoller) accrualWorker(ctx context.Context, id int, jobsCh <-chan entities.Order, resultsCh chan<- accrualResult) {
+func (p *AccrualPoller) accrualWorker(ctx context.Context, id int, jobsCh <-chan entities.Order, resultsCh chan<- accrualResult) error {
 	defer p.logger.Info("accrual worker done", zap.Int("id", id))
 	p.logger.Info("accrual worker started", zap.Int("id", id))
 
 	for order := range jobsCh {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		default:
 		}
 
@@ -98,7 +98,7 @@ func (p *AccrualPoller) accrualWorker(ctx context.Context, id int, jobsCh <-chan
 			var rateLimitErr *RetryAfterError
 			if errors.As(err, &rateLimitErr) {
 				resultsCh <- accrualResult{retryAfter: rateLimitErr.RetryAfter}
-				return
+				return nil
 			}
 			if errors.Is(err, ErrNotRegistered) {
 				continue
@@ -109,6 +109,7 @@ func (p *AccrualPoller) accrualWorker(ctx context.Context, id int, jobsCh <-chan
 
 		resultsCh <- accrualResult{updated: mapStatus(order, resp)}
 	}
+	return nil
 }
 
 // poll выполняет один цикл опроса: загружает заказы, распределяет их по worker'ам
@@ -126,31 +127,32 @@ func (p *AccrualPoller) poll(ctx context.Context) error {
 	pollCtx, cancelPoll := context.WithCancel(ctx)
 	defer cancelPoll()
 
+	eg, egCtx := errgroup.WithContext(pollCtx)
+
 	jobsCh := make(chan entities.Order, len(orders))
 	resultsCh := make(chan accrualResult, len(orders))
 
-	var wg sync.WaitGroup
 	for i := 0; i < p.workerCount; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			p.accrualWorker(pollCtx, id, jobsCh, resultsCh)
-		}(i)
+		id := i
+		eg.Go(func() error {
+			return p.accrualWorker(egCtx, id, jobsCh, resultsCh)
+		})
 	}
 
-	go func() {
+	eg.Go(func() error {
 		defer close(jobsCh)
 		for _, order := range orders {
 			select {
-			case <-pollCtx.Done():
-				return
+			case <-egCtx.Done():
+				return egCtx.Err()
 			case jobsCh <- order:
 			}
 		}
-	}()
+		return nil
+	})
 
 	go func() {
-		wg.Wait()
+		eg.Wait()
 		close(resultsCh)
 	}()
 
