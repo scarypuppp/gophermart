@@ -1,0 +1,37 @@
+package handlers
+
+import (
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/scarypuppp/gophermart/internal/middlewares"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
+)
+
+func (h *Handler) GetRouter() http.Handler {
+	r := chi.NewRouter()
+
+	mw := middlewares.NewMiddleware(h.config, h.logger)
+
+	r.Use(mw.LogRequest)
+	r.Use(mw.LogResponse)
+
+	r.Get("/swagger/*", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		httpSwagger.Handler()(w, r)
+	})
+
+	r.Post("/api/user/register", h.Register)
+	r.Post("/api/user/login", h.Login)
+
+	r.Group(func(r chi.Router) {
+		r.Use(mw.Auth)
+		r.Post("/api/user/orders", h.CreateOrder)
+		r.Get("/api/user/orders", h.GetOrders)
+		r.Get("/api/user/balance", h.GetBalance)
+		r.Post("/api/user/balance/withdraw", h.CreateWithdraw)
+		r.Get("/api/user/withdrawals", h.GetWithdrawals)
+	})
+
+	return r
+}
